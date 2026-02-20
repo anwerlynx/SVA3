@@ -1,0 +1,197 @@
+Build a fully professional multi-institute university website using Next.js 14 (App Router) with TypeScript.
+
+The project represents "Valley Higher Institutes" which includes two completely separated institutes:
+
+1) Higher Institute of Management, Finance & Information Systems
+2) Higher Institute of Engineering & Technology
+
+Each institute must function like a semi-independent entity with:
+
+- Its own homepage
+- Its own news system
+- Its own quality assurance section
+- Its own departments
+- Its own library section
+- Its own announcements
+- Its own visual identity accent (subtle variation in color tone)
+
+Use modern professional stack:
+
+Framework:
+- Next.js 14 (App Router)
+- TypeScript
+
+Styling:
+- Tailwind CSS
+- CSS variables for design system
+- Clean spacing system (8pt grid)
+
+UI Components:
+- shadcn/ui
+- Radix UI primitives
+
+Icons:
+- Lucide React (consistent academic style)
+
+Animations:
+- Framer Motion
+- Smooth scroll reveal animations
+- Fade-up on section enter
+- Staggered card animation
+- Hover micro-interactions
+- Subtle dropdown transitions
+- Animated counters for statistics
+- Page transition animation
+
+Sliders:
+- Swiper.js
+
+Forms:
+- React Hook Form + Zod validation
+
+Performance:
+- Image optimization (Next Image)
+- Lazy loading
+- Clean component structure
+- Production-ready architecture
+
+---------------------------------------------------
+GLOBAL STRUCTURE
+---------------------------------------------------
+
+Main Root Website:
+
+/ (Landing portal for Valley Higher Institutes)
+- Hero section introducing both institutes
+- Split layout presenting both institutes
+- Global statistics
+- Latest combined news preview
+- CTA buttons to enter each institute website
+
+/institute/management
+/institute/engineering
+
+Each institute has its own layout and navigation.
+
+---------------------------------------------------
+MANAGEMENT INSTITUTE WEBSITE STRUCTURE
+---------------------------------------------------
+
+Homepage:
+- Hero (large background, premium typography)
+- About preview
+- Departments grid
+- Admission CTA
+- Latest News (management only)
+- Events
+- Quality Assurance preview
+- Footer (management specific)
+
+Departments:
+- Management Information Systems
+- Accounting
+- Banking & Investment
+- Marketing & Business Administration
+
+Pages:
+- About
+- Chairman Message
+- Vision & Mission
+- Departments (dynamic routing)
+- Admission Requirements
+- Student Affairs
+- Library (management content only)
+- Quality Assurance (management unit only)
+- News (management only)
+- Contact
+
+---------------------------------------------------
+ENGINEERING INSTITUTE WEBSITE STRUCTURE
+---------------------------------------------------
+
+Homepage:
+- Hero (engineering tone)
+- About preview
+- Departments grid
+- Labs & Facilities section
+- Latest News (engineering only)
+- Quality Assurance preview
+- Footer (engineering specific)
+
+Departments:
+- Electrical Power & Communications
+- Civil & Environmental Engineering
+- Architecture & Design
+- Control & Computer Engineering
+
+Pages:
+- About
+- Vision & Mission
+- Departments (dynamic routing)
+- Admission Requirements
+- Labs
+- Library (engineering content only)
+- Quality Assurance (engineering unit only)
+- News (engineering only)
+- Contact
+
+---------------------------------------------------
+DESIGN SYSTEM REQUIREMENTS
+---------------------------------------------------
+
+Typography:
+- Arabic primary font: IBM Plex Sans Arabic or Cairo
+- Clean typographic hierarchy
+- Proper letter spacing
+- Professional academic feel
+
+Color System:
+- Primary brand green
+- Neutral gray scale
+- Separate accent shade for each institute
+
+Layout:
+- Clean grid system
+- Generous whitespace
+- Professional university look
+- Avoid generic AI-generated look
+- Avoid template-style layouts
+- Avoid excessive gradients
+
+Micro Interactions:
+- Button hover elevation
+- Subtle scale on cards
+- Animated underline on links
+- Smooth dropdown menus
+
+Responsive:
+- Fully responsive
+- Optimized for:
+  - 1440px desktop
+  - 1024px tablet
+  - 768px small tablet
+  - 480px mobile
+- Mobile menu animation (slide-in)
+- Accessible tap areas
+
+Accessibility:
+- Semantic HTML
+- ARIA labels
+- Keyboard navigation
+- Proper contrast ratios
+
+---------------------------------------------------
+IMPORTANT RULES
+---------------------------------------------------
+
+- The UI must look handcrafted and premium.
+- Avoid generic AI styling patterns.
+- Follow modern university website standards.
+- Keep animations subtle and elegant.
+- Keep transitions smooth and refined.
+- No unnecessary flashy effects.
+- Maintain performance optimization.
+- Structure code cleanly with reusable components.
+- Use folder-based modular architecture.
+
+Generate the full project structure with components, layout files, pages, and sample content placeholders.

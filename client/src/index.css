@@ -1,0 +1,116 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --neutral-100: rgba(255, 255, 255, 1);
+  --neutral-500: rgba(153, 153, 153, 1);
+  --neutral-700: rgba(77, 77, 77, 1);
+  --neutral-800: rgba(51, 51, 51, 1);
+  --neutral-900: rgba(26, 26, 26, 1);
+  --primary-color: rgba(5, 106, 0, 1);
+  --primary-color500: rgba(4, 120, 0, 1);
+}
+
+@layer base {
+  /* Refined Light Theme */
+  :root {
+    --background: 210 20% 98%; /* Soft off-white */
+    --foreground: 222.2 47.4% 11.2%; /* Deep charcoal */
+    
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 47.4% 11.2%;
+    
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 47.4% 11.2%;
+    
+    --primary: 142 76% 36%; /* Institute Green */
+    --primary-foreground: 210 40% 98%;
+    
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 142 76% 36%;
+    --radius: 0.75rem;
+  }
+
+  /* Refined Dark Theme - Deep Blue/Black Base */
+  .dark {
+    --background: 222 47% 11%; /* Dark Blue-Grey */
+    --foreground: 210 40% 98%;
+    
+    --card: 217 33% 17%;
+    --card-foreground: 210 40% 98%;
+    
+    --popover: 222 47% 11%;
+    --popover-foreground: 210 40% 98%;
+    
+    --primary: 142 70% 50%; /* Brighter Green for Dark Mode */
+    --primary-foreground: 222.2 47.4% 11.2%;
+    
+    --secondary: 217 33% 17%;
+    --secondary-foreground: 210 40% 98%;
+    
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20.2% 65.1%;
+    
+    --accent: 217 33% 17%;
+    --accent-foreground: 210 40% 98%;
+    
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    
+    --border: 217 33% 17%;
+    --input: 217 33% 17%;
+    --ring: 142 70% 50%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer components {
+  .all-\[unset\] {
+    all: unset;
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+@keyframes accordion-down {
+  from { height: 0; }
+  to { height: var(--radix-accordion-content-height); }
+}
+
+@keyframes accordion-up {
+  from { height: var(--radix-accordion-content-height); }
+  to { height: 0; }
+}

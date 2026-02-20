@@ -1,0 +1,43 @@
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+
+# Production
+dist
+build
+out
+
+# Environment Variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# System Files
+.DS_Store
+Thumbs.db
+
+# IDEs
+.idea
+.vscode
+*.swp
+*.swo
+
+# Server public (if generated)
+server/public
+
+# Vite specific
+vite.config.ts.timestamp-*
+*.tsbuildinfo
+
+# Replit / Other
+.replit
+replit.nix
