@@ -89,20 +89,24 @@ app.use((req, res, next) => {
   // It is the only port that is not firewalled.
   const port = parseInt(process.env.PORT || '5000', 10);
 
-  try {
-    server.listen(port, "0.0.0.0", () => {
-      log(`serving on port ${port}`);
-    });
+  if (process.env.NODE_ENV !== 'production') {
+    try {
+      server.listen(port, "0.0.0.0", () => {
+        log(`serving on port ${port}`);
+      });
 
-    server.on('error', (err: any) => {
-      if (err.code === 'EADDRINUSE') {
-        log(`Port ${port} is busy, trying ${port + 1}...`);
-        server.listen(port + 1, "0.0.0.0");
-      } else {
-        console.error('Server error:', err);
-      }
-    });
-  } catch (err) {
-    console.error('Failed to start server:', err);
+      server.on('error', (err: any) => {
+        if (err.code === 'EADDRINUSE') {
+          log(`Port ${port} is busy, trying ${port + 1}...`);
+          server.listen(port + 1, "0.0.0.0");
+        } else {
+          console.error('Server error:', err);
+        }
+      });
+    } catch (err) {
+      console.error('Failed to start server:', err);
+    }
   }
 })();
+
+export default app;
