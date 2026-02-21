@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Breadcrumb } from "@/components/Breadcrumb";
@@ -8,16 +9,96 @@ import { PageHead } from "@/components/PageHead";
 import { useLanguage } from "@/context/LanguageContext";
 import {
   FlaskConical, BookOpen, Globe, Award, FileText, Microscope,
-  Lightbulb, TrendingUp, ExternalLink, Calendar, MapPin, Users
+  Lightbulb, TrendingUp, ExternalLink, Calendar, MapPin, Users, Loader2
 } from "lucide-react";
+
+interface Publication {
+  id: string;
+  titleAr: string;
+  titleEn: string;
+  abstractAr: string;
+  abstractEn: string;
+  authorIds: string[];
+  publishedYear: number;
+  journal: string;
+  doi: string;
+  fileUrl: string;
+  externalUrl: string;
+  category: string;
+  institute: string;
+  status: string;
+  createdAt: string;
+}
 
 export default function Research() {
   const { language, direction } = useLanguage();
+  const [publications, setPublications] = useState<Publication[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const pageTitle = language === 'ar' ? 'البحث العلمي والابتكار' : 'Research & Innovation';
   const pageSubtitle = language === 'ar'
     ? 'تطوير المعرفة من خلال البحث العلمي المتميز'
     : 'Advancing knowledge through distinguished scientific research';
+
+  useEffect(() => {
+    const fetchPublications = async () => {
+      try {
+        const response = await fetch('/api/research');
+        if (response.ok) {
+          const data = await response.json();
+          setPublications(data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch publications:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPublications();
+  }, []);
+
+  const getInstituteLabel = (institute: string): string => {
+    const instituteMap: { [key: string]: { ar: string; en: string } } = {
+      engineering: { ar: 'الهندسة', en: 'Engineering' },
+      management: { ar: 'الإدارة', en: 'Management' },
+    };
+    return language === 'ar'
+      ? instituteMap[institute]?.ar || institute
+      : instituteMap[institute]?.en || institute;
+  };
+
+  const getCategoryColor = (category: string): string => {
+    const colorMap: { [key: string]: string } = {
+      'civil-engineering': 'bg-indigo-100 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400',
+      'electrical-engineering': 'bg-indigo-100 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400',
+      'finance': 'bg-amber-100 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400',
+      'information-systems': 'bg-indigo-100 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400',
+      'architecture': 'bg-teal-100 dark:bg-teal-900/20 text-teal-700 dark:text-teal-400',
+      'accounting': 'bg-amber-100 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400',
+      'article': 'bg-indigo-100 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400',
+      'conference': 'bg-amber-100 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400',
+      'other': 'bg-gray-100 dark:bg-gray-900/20 text-gray-700 dark:text-gray-400',
+    };
+    return colorMap[category?.toLowerCase()] || colorMap['other'];
+  };
+
+  const getCategoryLabel = (category: string): string => {
+    const categoryMap: { [key: string]: { ar: string; en: string } } = {
+      'civil-engineering': { ar: 'الهندسة المدنية', en: 'Civil Engineering' },
+      'electrical-engineering': { ar: 'الهندسة الكهربائية', en: 'Electrical Engineering' },
+      'finance': { ar: 'المالية', en: 'Finance' },
+      'information-systems': { ar: 'نظم المعلومات', en: 'Information Systems' },
+      'architecture': { ar: 'العمارة', en: 'Architecture' },
+      'accounting': { ar: 'المحاسبة', en: 'Accounting' },
+      'article': { ar: 'مقال محكم', en: 'Journal Article' },
+      'conference': { ar: 'ورقة مؤتمر', en: 'Conference Paper' },
+      'other': { ar: 'بحث', en: 'Research' },
+    };
+    return language === 'ar'
+      ? categoryMap[category?.toLowerCase()]?.ar || category
+      : categoryMap[category?.toLowerCase()]?.en || category;
+  };
 
   const stats = [
     { icon: FileText, value: 85, suffix: "+", label: language === 'ar' ? "بحث منشور" : "Publications" },
@@ -61,62 +142,6 @@ export default function Research() {
     },
   ];
 
-  const publications = [
-    {
-      title: language === 'ar' ? "أداء الخرسانة عالية القوة تحت الأحمال الديناميكية" : "Structural Performance of High-Strength Concrete Under Dynamic Loading",
-      authors: language === 'ar' ? "د. أحمد حسن، د. سارة علي" : "Dr. Ahmed Hassan, Dr. Sara Ali",
-      journal: "International Journal of Structural Engineering",
-      year: 2025,
-      type: language === 'ar' ? "مقال محكم" : "Journal Article",
-      institute: language === 'ar' ? "الهندسة" : "Engineering",
-      typeColor: "bg-indigo-100 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400",
-    },
-    {
-      title: language === 'ar' ? "التحول الرقمي في المنشآت الصغيرة والمتوسطة المصرية" : "Digital Transformation in Egyptian SMEs: Challenges and Opportunities",
-      authors: language === 'ar' ? "أ.د. محمد كريم، د. نور إبراهيم" : "Prof. Mohamed Karim, Dr. Nour Ibrahim",
-      journal: "Journal of Business Research",
-      year: 2025,
-      type: language === 'ar' ? "مقال محكم" : "Journal Article",
-      institute: language === 'ar' ? "الإدارة" : "Management",
-      typeColor: "bg-indigo-100 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400",
-    },
-    {
-      title: language === 'ar' ? "تطبيقات التعلم الآلي في مراقبة جودة الهندسة المدنية" : "Machine Learning Applications in Civil Engineering Quality Control",
-      authors: language === 'ar' ? "د. علي مصطفى، م. هنا سيد" : "Dr. Ali Mostafa, Eng. Hana Sayed",
-      journal: "Construction and Building Materials",
-      year: 2024,
-      type: language === 'ar' ? "ورقة مؤتمر" : "Conference Paper",
-      institute: language === 'ar' ? "الهندسة" : "Engineering",
-      typeColor: "bg-amber-100 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400",
-    },
-    {
-      title: language === 'ar' ? "إدارة المخاطر المالية في الأسواق الناشئة" : "Financial Risk Management in Emerging Markets",
-      authors: language === 'ar' ? "د. كريم عبدالله، أ.د. محمد أحمد" : "Dr. Karim Abdullah, Prof. Mohamed Ahmed",
-      journal: "Emerging Markets Finance and Trade",
-      year: 2024,
-      type: language === 'ar' ? "مقال محكم" : "Journal Article",
-      institute: language === 'ar' ? "الإدارة" : "Management",
-      typeColor: "bg-indigo-100 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400",
-    },
-    {
-      title: language === 'ar' ? "دمج الطاقة المتجددة في تصميم المباني" : "Renewable Energy Integration in Building Design",
-      authors: language === 'ar' ? "د. منى سعيد، د. أحمد حسن" : "Dr. Mona Saeed, Dr. Ahmed Hassan",
-      journal: "Energy and Buildings",
-      year: 2024,
-      type: language === 'ar' ? "مقال محكم" : "Journal Article",
-      institute: language === 'ar' ? "الهندسة" : "Engineering",
-      typeColor: "bg-indigo-100 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400",
-    },
-    {
-      title: language === 'ar' ? "عوامل تبني الحكومة الإلكترونية في مصر" : "E-Government Adoption Factors in Egypt",
-      authors: language === 'ar' ? "د. سارة علي، د. نور إبراهيم" : "Dr. Sara Ali, Dr. Nour Ibrahim",
-      journal: "Government Information Quarterly",
-      year: 2023,
-      type: language === 'ar' ? "مقال محكم" : "Journal Article",
-      institute: language === 'ar' ? "الإدارة" : "Management",
-      typeColor: "bg-indigo-100 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400",
-    },
-  ];
 
   const conferences = [
     {
@@ -249,28 +274,43 @@ export default function Research() {
             </div>
           </AnimatedSection>
           <div className="flex flex-col gap-4" dir={direction}>
-            {publications.map((pub, index) => (
-              <AnimatedSection key={index} delay={index * 0.06} direction="left">
-                <Card className="rounded-2xl border-0 shadow-sm hover:shadow-md transition-all bg-white dark:bg-neutral-800">
-                  <CardContent className="p-5 flex items-start gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-green-50 dark:bg-green-900/20 flex items-center justify-center flex-shrink-0">
-                      <FileText className="w-6 h-6 text-green-700 dark:text-green-500" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex flex-wrap items-center gap-2 mb-2">
-                        <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium [font-family:'Almarai',Helvetica] ${pub.typeColor}`}>{pub.type}</span>
-                        <span className="text-xs text-neutral-400 dark:text-neutral-500">{pub.year}</span>
-                        <span className="text-xs text-neutral-300 dark:text-neutral-600">·</span>
-                        <span className="text-xs text-neutral-400 dark:text-neutral-500">{pub.institute}</span>
+            {loading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-8 h-8 text-green-700 animate-spin" />
+              </div>
+            ) : publications.length > 0 ? (
+              publications.map((pub, index) => (
+                <AnimatedSection key={pub.id} delay={index * 0.06} direction="left">
+                  <Card className="rounded-2xl border-0 shadow-sm hover:shadow-md transition-all bg-white dark:bg-neutral-800">
+                    <CardContent className="p-5 flex items-start gap-4">
+                      <div className="w-12 h-12 rounded-xl bg-green-50 dark:bg-green-900/20 flex items-center justify-center flex-shrink-0">
+                        <FileText className="w-6 h-6 text-green-700 dark:text-green-500" />
                       </div>
-                      <h3 className="font-bold text-neutral-900 dark:text-white [font-family:'Almarai',Helvetica] mb-1 transition-colors duration-300">{pub.title}</h3>
-                      <p className="text-sm text-neutral-500 dark:text-neutral-400 [font-family:'Almarai',Helvetica] mb-1">{pub.authors}</p>
-                      <p className="text-xs text-neutral-400 dark:text-neutral-500 italic [font-family:'Almarai',Helvetica]">{pub.journal}</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              </AnimatedSection>
-            ))}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 mb-2">
+                          <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium [font-family:'Almarai',Helvetica] ${getCategoryColor(pub.category)}`}>
+                            {getCategoryLabel(pub.category)}
+                          </span>
+                          <span className="text-xs text-neutral-400 dark:text-neutral-500">{pub.publishedYear}</span>
+                          <span className="text-xs text-neutral-300 dark:text-neutral-600">·</span>
+                          <span className="text-xs text-neutral-400 dark:text-neutral-500">{getInstituteLabel(pub.institute)}</span>
+                        </div>
+                        <h3 className="font-bold text-neutral-900 dark:text-white [font-family:'Almarai',Helvetica] mb-1 transition-colors duration-300">
+                          {language === 'ar' ? pub.titleAr : (pub.titleEn || pub.titleAr)}
+                        </h3>
+                        <p className="text-xs text-neutral-400 dark:text-neutral-500 italic [font-family:'Almarai',Helvetica]">{pub.journal}</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </AnimatedSection>
+              ))
+            ) : (
+              <div className="text-center py-12">
+                <p className="text-neutral-500 dark:text-neutral-400 [font-family:'Almarai',Helvetica]">
+                  {language === 'ar' ? "لا توجد أبحاث منشورة حالياً" : "No publications available"}
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </section>

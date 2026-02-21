@@ -4,10 +4,11 @@ import { Breadcrumb } from "@/components/Breadcrumb";
 import { AnimatedSection } from "@/components/AnimatedSection";
 import { Card, CardContent } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { FileText, HelpCircle, PartyPopper, Briefcase, CheckCircle2, GraduationCap, BookOpen, HeartHandshake, Award, Shield } from "lucide-react";
+import { FileText, HelpCircle, PartyPopper, Briefcase, CheckCircle2, GraduationCap, BookOpen, HeartHandshake, Award, Shield, Loader2 } from "lucide-react";
 import { PageHead } from "@/components/PageHead";
 import { useLanguage } from "@/context/LanguageContext";
 import { Link } from "wouter";
+import { useState, useEffect } from "react";
 
 export default function Services() {
   const { t, direction, language } = useLanguage();
@@ -17,7 +18,7 @@ export default function Services() {
     t("req5"), t("req6"), t("req7"), t("req8"),
   ];
 
-  const faqs = [
+  const staticFaqs = [
     {
       question: language === 'ar' ? "ما هي مصاريف الدراسة؟" : "What are the tuition fees?",
       answer: language === 'ar'
@@ -49,6 +50,25 @@ export default function Services() {
         : "You can apply through the admissions office directly or through the electronic coordination website.",
     },
   ];
+
+  const [faqs, setFaqs] = useState(staticFaqs);
+
+  useEffect(() => {
+    fetch('/api/faqs')
+      .then(r => r.json())
+      .then((data: any[]) => {
+        if (Array.isArray(data) && data.length > 0) {
+          const activeFaqs = data.filter((f: any) => f.isActive !== false);
+          if (activeFaqs.length > 0) {
+            setFaqs(activeFaqs.map((f: any) => ({
+              question: language === 'ar' ? f.questionAr : (f.questionEn || f.questionAr),
+              answer: language === 'ar' ? f.answerAr : (f.answerEn || f.answerAr),
+            })));
+          }
+        }
+      })
+      .catch(() => {});
+  }, [language]);
 
   const jobs = [
     {

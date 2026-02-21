@@ -9,9 +9,11 @@ import { Button } from "@/components/ui/button";
 import { MapPin, Phone, Mail, Clock, CheckCircle2, Loader2 } from "lucide-react";
 import { PageHead } from "@/components/PageHead";
 import { useLanguage } from "@/context/LanguageContext";
+import { Breadcrumb } from "@/components/Breadcrumb";
 
 export default function EngineeringContact() {
   const { language, direction } = useLanguage();
+  const pageTitle = language === "ar" ? "تواصل معنا" : "Contact Us";
   const [form, setForm] = useState({ name: "", email: "", subject: "", message: "" });
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -51,6 +53,16 @@ export default function EngineeringContact() {
       <PageHead title={language === "ar" ? "تواصل معنا - المعهد العالي للهندسة" : "Contact Us - Higher Institute of Engineering"} description={language === "ar" ? "معلومات التواصل مع المعهد العالي للهندسة والتكنولوجيا" : "Contact information for the Higher Institute of Engineering and Technology"} />
       <InstituteNavbar {...engineeringNavbar} />
       <InstituteHero title={language === "ar" ? "تواصل معنا" : "Contact Us"} subtitle={language === "ar" ? "نسعد بتواصلك معنا" : "We are happy to hear from you"} image="/figmaAssets/rectangle-17.png" overlayColor="from-blue-900/60 to-blue-900/80" />
+
+      <div className="max-w-[1200px] mx-auto px-4 md:px-8 pt-6">
+        <Breadcrumb
+          items={[
+            { label: language === 'ar' ? 'الرئيسية' : 'Home', href: '/' },
+            { label: language === 'ar' ? 'معهد الهندسة' : 'Engineering Institute', href: '/institute/engineering' },
+            { label: pageTitle },
+          ]}
+        />
+      </div>
 
       <section className="py-20 md:py-28 bg-white dark:bg-neutral-950 transition-colors duration-300">
         <div className="max-w-[1000px] mx-auto px-4 md:px-8">

@@ -119,6 +119,12 @@ const categories: SitemapCategory[] = [
       { path: '/contact', labelAr: 'اتصل بنا', labelEn: 'Contact' },
       { path: '/media-gallery', labelAr: 'معرض الوسائط', labelEn: 'Media Gallery' },
       { path: '/academic', labelAr: 'الشؤون الأكاديمية', labelEn: 'Academic' },
+      { path: '/faculty', labelAr: 'أعضاء هيئة التدريس', labelEn: 'Faculty' },
+      { path: '/research', labelAr: 'البحث العلمي', labelEn: 'Research' },
+      { path: '/community', labelAr: 'المجتمع', labelEn: 'Community' },
+      { path: '/students', labelAr: 'شئون الطلاب', labelEn: 'Students' },
+      { path: '/portal', labelAr: 'البوابة الإلكترونية', labelEn: 'Portal' },
+      { path: '/sitemap', labelAr: 'خريطة الموقع', labelEn: 'Sitemap' },
     ],
   },
 ];

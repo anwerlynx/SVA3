@@ -1,72 +1,101 @@
+import { useState, useEffect } from "react";
 import { AnimatedSection } from "@/components/AnimatedSection";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowRight, Calendar } from "lucide-react";
+import { ArrowLeft, ArrowRight, Calendar, Loader2 } from "lucide-react";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
 import { useLanguage } from "@/context/LanguageContext";
 
-const newsItems = [
-  {
-    id: 1,
+interface NewsItem {
+  id: string;
+  titleAr: string;
+  titleEn?: string;
+  slug: string;
+  contentAr?: string;
+  contentEn?: string;
+  excerpt?: string;
+  coverImage?: string;
+  category?: string;
+  createdAt: string;
+  isFeatured: boolean;
+}
+
+interface NewsResponse {
+  data: NewsItem[];
+  total: number;
+  page: number;
+  totalPages: number;
+}
+
+interface FormattedNewsItem {
+  id: string;
+  title: { ar: string; en: string };
+  date: { ar: string; en: string };
+  description: { ar: string; en: string };
+  image: string;
+  featured: boolean;
+  slug: string;
+}
+
+function formatDate(dateString: string, lang: string): string {
+  const date = new Date(dateString);
+  if (lang === "ar") {
+    return new Intl.DateTimeFormat("ar-SA").format(date);
+  }
+  return new Intl.DateTimeFormat("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  }).format(date);
+}
+
+function transformApiDataToComponent(item: NewsItem, language: string): FormattedNewsItem {
+  return {
+    id: item.id,
     title: {
-      ar: "مشاركة معاهدنا كراع للمؤتمر الدولى التاسع للمنتدى الاستراتيجى",
-      en: "Our institutes' participation as sponsors of the 9th International Strategic Forum Conference",
+      ar: item.titleAr,
+      en: item.titleEn || item.titleAr,
     },
-    date: { ar: "25 فبراير 2026", en: "February 25, 2026" },
+    date: {
+      ar: formatDate(item.createdAt, "ar"),
+      en: formatDate(item.createdAt, "en"),
+    },
     description: {
-      ar: "تم تنظيم حفل تكريم للطلاب المتفوقين تحت رعاية الأستاذ الدكتور عميد المعهد",
-      en: "An honoring ceremony was organized for outstanding students under the patronage of the institute dean",
+      ar: item.excerpt || item.contentAr?.substring(0, 150) || "",
+      en: item.excerpt || (item.contentEn || item.contentAr)?.substring(0, 150) || "",
     },
-    image: "/figmaAssets/rectangle-10.png",
-    featured: true,
-  },
-  {
-    id: 2,
-    title: {
-      ar: "صور تكريم الطلبة من العميد",
-      en: "Photos of student honoring by the Dean",
-    },
-    date: { ar: "16 فبراير 2026", en: "February 16, 2026" },
-    description: {
-      ar: "مشاركة المعهد العالي للهندسة في مؤتمر المرأه العالمي في العلوم",
-      en: "The Higher Institute of Engineering's participation in the International Women in Science Conference",
-    },
-    image: "/figmaAssets/rectangle-12.png",
-    featured: false,
-  },
-  {
-    id: 3,
-    title: {
-      ar: "مؤتمر المرأه في العلوم",
-      en: "Women in Science Conference",
-    },
-    date: { ar: "16 فبراير 2026", en: "February 16, 2026" },
-    description: {
-      ar: "مشاركة المعهد العالي للهندسة في مؤتمر المرأه العالمي في العلوم",
-      en: "The Higher Institute of Engineering's participation in the International Women in Science Conference",
-    },
-    image: "/figmaAssets/rectangle-12-1.png",
-    featured: false,
-  },
-  {
-    id: 4,
-    title: {
-      ar: "ندوة التطوير المهني",
-      en: "Professional Development Seminar",
-    },
-    date: { ar: "10 فبراير 2026", en: "February 10, 2026" },
-    description: {
-      ar: "ندوة حول التطوير المهني وفرص العمل للخريجين بالتعاون مع الشركات الكبرى",
-      en: "A seminar on professional development and job opportunities for graduates in collaboration with major companies",
-    },
-    image: "/figmaAssets/rectangle-12-2.png",
-    featured: false,
-  },
-];
+    image: item.coverImage || "/figmaAssets/rectangle-10.png",
+    featured: item.isFeatured,
+    slug: item.slug,
+  };
+}
 
 export function NewsSection() {
   const { language, direction } = useLanguage();
+  const [newsItems, setNewsItems] = useState<FormattedNewsItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchNews = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch("/api/news?limit=4");
+        if (!response.ok) throw new Error("Failed to fetch news");
+        const data: NewsResponse = await response.json();
+        const formatted = data.data.map((item) => transformApiDataToComponent(item, language));
+        setNewsItems(formatted);
+      } catch (error) {
+        console.error("Error fetching news:", error);
+        setNewsItems([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchNews();
+  }, [language]);
+
   const featured = newsItems.find((n) => n.featured);
   const rest = newsItems.filter((n) => !n.featured);
   const Arrow = direction === "rtl" ? ArrowLeft : ArrowRight;
@@ -102,9 +131,13 @@ export function NewsSection() {
         </AnimatedSection>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8" dir={direction}>
-          {featured && (
+          {loading ? (
+            <div className="flex items-center justify-center lg:col-span-2 py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-green-700" />
+            </div>
+          ) : featured ? (
             <AnimatedSection direction="right">
-              <Link href={`/news/${featured.id}`}>
+              <Link href={`/news/${featured.slug}`}>
                 <div>
                   <Card className="rounded-3xl overflow-hidden border-0 shadow-lg cursor-pointer group h-full dark:bg-neutral-900">
                     <CardContent className="p-0">
@@ -138,12 +171,12 @@ export function NewsSection() {
                 </div>
               </Link>
             </AnimatedSection>
-          )}
+          ) : null}
 
           <div className="flex flex-col gap-4">
             {rest.map((item, index) => (
               <AnimatedSection key={item.id} delay={index * 0.15} direction="left">
-                <Link href={`/news/${item.id}`}>
+                <Link href={`/news/${item.slug}`}>
                   <div>
                     <Card className="rounded-2xl border-0 shadow-sm hover:shadow-md transition-all cursor-pointer dark:bg-neutral-900">
                       <CardContent className="p-4 flex items-center gap-4">

@@ -4,6 +4,7 @@ import { AnimatedSection } from "@/components/AnimatedSection";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageHead } from "@/components/PageHead";
 import { useLanguage } from "@/context/LanguageContext";
+import { Breadcrumb } from "@/components/Breadcrumb";
 import { Shield, Scale, AlertTriangle, AlertOctagon, Ban, ClipboardList, RotateCcw, Award, CheckCircle2, BookOpen } from "lucide-react";
 
 export default function StudentDiscipline() {
@@ -143,6 +144,16 @@ export default function StudentDiscipline() {
           </AnimatedSection>
         </div>
       </section>
+
+      <div className="max-w-[1200px] mx-auto px-4 md:px-8 pt-6">
+        <Breadcrumb
+          items={[
+            { label: language === 'ar' ? 'الرئيسية' : 'Home', href: '/' },
+            { label: language === 'ar' ? 'شؤون الطلاب' : 'Student Affairs', href: '/student-affairs' },
+            { label: pageTitle },
+          ]}
+        />
+      </div>
 
       <section className="py-20 md:py-24 bg-white dark:bg-neutral-950 transition-colors duration-300">
         <div className="max-w-[1000px] mx-auto px-4 md:px-8">

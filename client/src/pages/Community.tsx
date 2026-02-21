@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Breadcrumb } from "@/components/Breadcrumb";
@@ -9,102 +10,147 @@ import { useLanguage } from "@/context/LanguageContext";
 import { Link } from "wouter";
 import {
   Users, Music, Trophy, Heart, Palette, Leaf,
-  Calendar, MapPin, ArrowLeft, ArrowRight, Star, Handshake
+  Calendar, MapPin, ArrowLeft, ArrowRight, Star, Handshake, Loader2
 } from "lucide-react";
 
 export default function Community() {
   const { language, direction } = useLanguage();
+  const [activities, setActivities] = useState<any[]>([]);
+  const [events, setEvents] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    Promise.all([
+      fetch('/api/activities').then(r => r.json()).catch(() => []),
+      fetch('/api/events').then(r => r.json()).catch(() => []),
+    ]).then(([activitiesData, eventsData]) => {
+      setActivities(Array.isArray(activitiesData) ? activitiesData.filter((a: any) => a.isActive) : []);
+      setEvents(Array.isArray(eventsData) ? eventsData.filter((e: any) => e.status === 'published').slice(0, 4) : []);
+      setLoading(false);
+    });
+  }, []);
 
   const pageTitle = language === 'ar' ? 'المجتمع والأنشطة' : 'Community & Activities';
   const pageSubtitle = language === 'ar'
     ? 'حياة طلابية نابضة بالنشاط والإبداع'
     : 'A vibrant student life full of activities and creativity';
 
+  const clubCount = activities.filter(a => a.category === 'club').length;
+  const sportCount = activities.filter(a => a.category === 'sport').length;
+  const culturalCount = activities.filter(a => a.category === 'cultural').length;
+  const volunteerCount = activities.filter(a => a.category === 'volunteer').length;
+  const scientificCount = activities.filter(a => a.category === 'scientific').length;
+
   const stats = [
-    { icon: Users, value: 24, suffix: "+", label: language === 'ar' ? "نادي ومجموعة طلابية" : "Student Clubs & Groups" },
-    { icon: Trophy, value: 15, suffix: "+", label: language === 'ar' ? "بطولة رياضية سنوياً" : "Annual Tournaments" },
-    { icon: Calendar, value: 40, suffix: "+", label: language === 'ar' ? "فعالية سنوية" : "Events Per Year" },
-    { icon: Heart, value: 500, suffix: "+", label: language === 'ar' ? "طالب متطوع" : "Student Volunteers" },
+    { icon: Users, value: activities.length || 24, suffix: "+", label: language === 'ar' ? "نادي ومجموعة طلابية" : "Student Clubs & Groups" },
+    { icon: Trophy, value: sportCount || 15, suffix: "+", label: language === 'ar' ? "بطولة رياضية سنوياً" : "Annual Tournaments" },
+    { icon: Calendar, value: events.length || 40, suffix: "+", label: language === 'ar' ? "فعالية سنوية" : "Events Per Year" },
+    { icon: Heart, value: volunteerCount || 500, suffix: "+", label: language === 'ar' ? "طالب متطوع" : "Student Volunteers" },
   ];
 
   const categories = [
     { icon: Users, title: language === 'ar' ? "اتحاد الطلاب" : "Student Union", desc: language === 'ar' ? "الهيئة الرسمية الممثلة لجميع الطلاب، تنظم الفعاليات وتعالج قضايا الطلاب." : "The official representative body organizing events and addressing student concerns.", count: 1, color: "bg-indigo-50 dark:bg-indigo-900/20", iconColor: "text-indigo-600 dark:text-indigo-400" },
-    { icon: Music, title: language === 'ar' ? "الأندية الثقافية" : "Cultural Clubs", desc: language === 'ar' ? "أندية متنوعة للأنشطة الثقافية والفنية والأدبية." : "Diverse clubs for cultural, artistic, and literary activities.", count: 8, color: "bg-violet-50 dark:bg-violet-900/20", iconColor: "text-violet-600 dark:text-violet-400" },
-    { icon: Trophy, title: language === 'ar' ? "الفرق الرياضية" : "Sports Teams", desc: language === 'ar' ? "فرق رياضية تنافسية في مختلف الألعاب والبطولات." : "Competitive sports teams across various games and tournaments.", count: 6, color: "bg-amber-50 dark:bg-amber-900/20", iconColor: "text-amber-600 dark:text-amber-400" },
-    { icon: Heart, title: language === 'ar' ? "التطوع وخدمة المجتمع" : "Volunteering", desc: language === 'ar' ? "مبادرات تطوعية لخدمة المجتمع المحلي والبيئة." : "Volunteer initiatives serving the local community and environment.", count: 4, color: "bg-rose-50 dark:bg-rose-900/20", iconColor: "text-rose-600 dark:text-rose-400" },
-    { icon: Palette, title: language === 'ar' ? "الفنون والإعلام" : "Arts & Media", desc: language === 'ar' ? "أنشطة إبداعية في التصوير والتصميم والإنتاج الإعلامي." : "Creative activities in photography, design, and media production.", count: 3, color: "bg-emerald-50 dark:bg-emerald-900/20", iconColor: "text-emerald-600 dark:text-emerald-400" },
-    { icon: Leaf, title: language === 'ar' ? "البيئة والاستدامة" : "Environment", desc: language === 'ar' ? "أنشطة وحملات للتوعية البيئية والتنمية المستدامة." : "Campaigns for environmental awareness and sustainable development.", count: 2, color: "bg-teal-50 dark:bg-teal-900/20", iconColor: "text-teal-600 dark:text-teal-400" },
+    { icon: Music, title: language === 'ar' ? "الأندية الثقافية" : "Cultural Clubs", desc: language === 'ar' ? "أندية متنوعة للأنشطة الثقافية والفنية والأدبية." : "Diverse clubs for cultural, artistic, and literary activities.", count: culturalCount || 8, color: "bg-violet-50 dark:bg-violet-900/20", iconColor: "text-violet-600 dark:text-violet-400" },
+    { icon: Trophy, title: language === 'ar' ? "الفرق الرياضية" : "Sports Teams", desc: language === 'ar' ? "فرق رياضية تنافسية في مختلف الألعاب والبطولات." : "Competitive sports teams across various games and tournaments.", count: sportCount || 6, color: "bg-amber-50 dark:bg-amber-900/20", iconColor: "text-amber-600 dark:text-amber-400" },
+    { icon: Heart, title: language === 'ar' ? "التطوع وخدمة المجتمع" : "Volunteering", desc: language === 'ar' ? "مبادرات تطوعية لخدمة المجتمع المحلي والبيئة." : "Volunteer initiatives serving the local community and environment.", count: volunteerCount || 4, color: "bg-rose-50 dark:bg-rose-900/20", iconColor: "text-rose-600 dark:text-rose-400" },
+    { icon: Palette, title: language === 'ar' ? "الفنون والإعلام" : "Arts & Media", desc: language === 'ar' ? "أنشطة إبداعية في التصوير والتصميم والإنتاج الإعلامي." : "Creative activities in photography, design, and media production.", count: clubCount || 3, color: "bg-emerald-50 dark:bg-emerald-900/20", iconColor: "text-emerald-600 dark:text-emerald-400" },
+    { icon: Leaf, title: language === 'ar' ? "البيئة والاستدامة" : "Environment", desc: language === 'ar' ? "أنشطة وحملات للتوعية البيئية والتنمية المستدامة." : "Campaigns for environmental awareness and sustainable development.", count: scientificCount || 2, color: "bg-teal-50 dark:bg-teal-900/20", iconColor: "text-teal-600 dark:text-teal-400" },
   ];
 
-  const activities = [
+  const fallbackActivities = [
     {
-      title: language === 'ar' ? "اتحاد الطلاب" : "Student Union",
-      desc: language === 'ar' ? "الهيئة الرسمية الممثلة لجميع الطلاب، تنظم الفعاليات وتعالج شؤون الطلاب وتعزز روح المجتمع الجامعي." : "The official representative body of all students, organizing events, addressing student concerns, and fostering campus community.",
-      members: 120,
-      image: "/figmaAssets/rectangle-10.png",
+      nameAr: "اتحاد الطلاب", nameEn: "Student Union",
+      descriptionAr: "الهيئة الرسمية الممثلة لجميع الطلاب، تنظم الفعاليات وتعالج شؤون الطلاب وتعزز روح المجتمع الجامعي.",
+      descriptionEn: "The official representative body of all students, organizing events, addressing student concerns, and fostering campus community.",
+      coverImage: "/figmaAssets/rectangle-10.png",
     },
     {
-      title: language === 'ar' ? "نادي الهندسة" : "Engineering Club",
-      desc: language === 'ar' ? "مركز لطلاب الهندسة للتعاون في المشاريع وحضور ورش العمل والتواصل مع المتخصصين في الصناعة." : "A hub for engineering students to collaborate on projects, attend workshops, and connect with industry professionals.",
-      members: 85,
-      image: "/figmaAssets/rectangle-12.png",
+      nameAr: "نادي الهندسة", nameEn: "Engineering Club",
+      descriptionAr: "مركز لطلاب الهندسة للتعاون في المشاريع وحضور ورش العمل والتواصل مع المتخصصين في الصناعة.",
+      descriptionEn: "A hub for engineering students to collaborate on projects, attend workshops, and connect with industry professionals.",
+      coverImage: "/figmaAssets/rectangle-12.png",
     },
     {
-      title: language === 'ar' ? "نادي الأعمال والريادة" : "Business & Entrepreneurship Club",
-      desc: language === 'ar' ? "تمكين قادة الأعمال المستقبليين من خلال المسابقات والإرشاد ومحاكاة الأعمال الواقعية." : "Empowering future business leaders through competitions, mentorship, and real-world business simulations.",
-      members: 72,
-      image: "/figmaAssets/rectangle-16.png",
+      nameAr: "نادي الأعمال والريادة", nameEn: "Business & Entrepreneurship Club",
+      descriptionAr: "تمكين قادة الأعمال المستقبليين من خلال المسابقات والإرشاد ومحاكاة الأعمال الواقعية.",
+      descriptionEn: "Empowering future business leaders through competitions, mentorship, and real-world business simulations.",
+      coverImage: "/figmaAssets/rectangle-16.png",
     },
     {
-      title: language === 'ar' ? "فريق كرة القدم" : "Football Team",
-      desc: language === 'ar' ? "المنافسة في بطولات ما بين الجامعات وتعزيز الروح الرياضية في الحرم الجامعي." : "Competing in inter-university tournaments and promoting sportsmanship across campus.",
-      members: 25,
-      image: "/figmaAssets/rectangle-17.png",
+      nameAr: "فريق كرة القدم", nameEn: "Football Team",
+      descriptionAr: "المنافسة في بطولات ما بين الجامعات وتعزيز الروح الرياضية في الحرم الجامعي.",
+      descriptionEn: "Competing in inter-university tournaments and promoting sportsmanship across campus.",
+      coverImage: "/figmaAssets/rectangle-17.png",
     },
     {
-      title: language === 'ar' ? "مبادرة خدمة المجتمع" : "Community Service Initiative",
-      desc: language === 'ar' ? "الطلاب يقدمون العطاء للمجتمع المحلي من خلال التوعية التعليمية والحملات البيئية والأعمال الخيرية." : "Students giving back through educational outreach, environmental campaigns, and charity drives.",
-      members: 60,
-      image: "/figmaAssets/rectangle-2.png",
+      nameAr: "مبادرة خدمة المجتمع", nameEn: "Community Service Initiative",
+      descriptionAr: "الطلاب يقدمون العطاء للمجتمع المحلي من خلال التوعية التعليمية والحملات البيئية والأعمال الخيرية.",
+      descriptionEn: "Students giving back through educational outreach, environmental campaigns, and charity drives.",
+      coverImage: "/figmaAssets/rectangle-2.png",
     },
     {
-      title: language === 'ar' ? "نادي التصوير والإعلام" : "Photography & Media Club",
-      desc: language === 'ar' ? "توثيق الحياة الجامعية وإنتاج المحتوى الإعلامي وتطوير مهارات السرد المرئي." : "Documenting campus life, producing student media content, and developing visual storytelling skills.",
-      members: 40,
-      image: "/figmaAssets/rectangle-3.png",
+      nameAr: "نادي التصوير والإعلام", nameEn: "Photography & Media Club",
+      descriptionAr: "توثيق الحياة الجامعية وإنتاج المحتوى الإعلامي وتطوير مهارات السرد المرئي.",
+      descriptionEn: "Documenting campus life, producing student media content, and developing visual storytelling skills.",
+      coverImage: "/figmaAssets/rectangle-3.png",
     },
   ];
 
-  const upcomingEvents = [
+  const displayActivities = activities.length > 0 ? activities : fallbackActivities;
+
+  const fallbackEvents = [
     {
-      title: language === 'ar' ? "يوم الرياضة السنوي" : "Annual Sports Day",
-      date: language === 'ar' ? "١٥ مارس ٢٠٢٦" : "March 15, 2026",
-      location: language === 'ar' ? "الحرم الرئيسي" : "Main Campus",
-      category: language === 'ar' ? "رياضة" : "Sports",
-      categoryColor: "bg-amber-100 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400",
+      titleAr: "يوم الرياضة السنوي", titleEn: "Annual Sports Day",
+      dateAr: "١٥ مارس ٢٠٢٦", dateEn: "March 15, 2026",
+      locationAr: "الحرم الرئيسي", locationEn: "Main Campus",
+      category: "sports",
     },
     {
-      title: language === 'ar' ? "المهرجان الثقافي" : "Cultural Festival",
-      date: language === 'ar' ? "٥ أبريل ٢٠٢٦" : "April 5, 2026",
-      location: language === 'ar' ? "قاعة المؤتمرات" : "Auditorium",
-      category: language === 'ar' ? "ثقافي" : "Cultural",
-      categoryColor: "bg-violet-100 dark:bg-violet-900/20 text-violet-700 dark:text-violet-400",
+      titleAr: "المهرجان الثقافي", titleEn: "Cultural Festival",
+      dateAr: "٥ أبريل ٢٠٢٦", dateEn: "April 5, 2026",
+      locationAr: "قاعة المؤتمرات", locationEn: "Auditorium",
+      category: "cultural",
     },
     {
-      title: language === 'ar' ? "مسابقة ريادة الأعمال" : "Entrepreneurship Competition",
-      date: language === 'ar' ? "٢٠ أبريل ٢٠٢٦" : "April 20, 2026",
-      location: language === 'ar' ? "قاعة المحاضرات الكبرى" : "Conference Hall",
-      category: language === 'ar' ? "أكاديمي" : "Academic",
-      categoryColor: "bg-indigo-100 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400",
+      titleAr: "مسابقة ريادة الأعمال", titleEn: "Entrepreneurship Competition",
+      dateAr: "٢٠ أبريل ٢٠٢٦", dateEn: "April 20, 2026",
+      locationAr: "قاعة المحاضرات الكبرى", locationEn: "Conference Hall",
+      category: "academic",
     },
     {
-      title: language === 'ar' ? "حملة تنظيف المجتمع" : "Community Cleanup Drive",
-      date: language === 'ar' ? "١ مايو ٢٠٢٦" : "May 1, 2026",
-      location: language === 'ar' ? "المجتمع المحلي" : "Local Community",
-      category: language === 'ar' ? "تطوع" : "Volunteering",
-      categoryColor: "bg-rose-100 dark:bg-rose-900/20 text-rose-700 dark:text-rose-400",
+      titleAr: "حملة تنظيف المجتمع", titleEn: "Community Cleanup Drive",
+      dateAr: "١ مايو ٢٠٢٦", dateEn: "May 1, 2026",
+      locationAr: "المجتمع المحلي", locationEn: "Local Community",
+      category: "volunteer",
     },
   ];
+
+  const displayEvents = events.length > 0 ? events : fallbackEvents;
+
+  const getCategoryColor = (cat: string) => {
+    const colors: Record<string, string> = {
+      sports: "bg-amber-100 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400",
+      cultural: "bg-violet-100 dark:bg-violet-900/20 text-violet-700 dark:text-violet-400",
+      academic: "bg-indigo-100 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400",
+      volunteer: "bg-rose-100 dark:bg-rose-900/20 text-rose-700 dark:text-rose-400",
+      seminar: "bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400",
+      conference: "bg-emerald-100 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400",
+    };
+    return colors[cat] || "bg-gray-100 dark:bg-gray-900/20 text-gray-700 dark:text-gray-400";
+  };
+
+  const getCategoryLabel = (cat: string) => {
+    const labels: Record<string, { ar: string; en: string }> = {
+      sports: { ar: "رياضة", en: "Sports" },
+      cultural: { ar: "ثقافي", en: "Cultural" },
+      academic: { ar: "أكاديمي", en: "Academic" },
+      volunteer: { ar: "تطوع", en: "Volunteering" },
+      seminar: { ar: "ندوة", en: "Seminar" },
+      conference: { ar: "مؤتمر", en: "Conference" },
+    };
+    const l = labels[cat];
+    return l ? (language === 'ar' ? l.ar : l.en) : cat;
+  };
 
   return (
     <div className="bg-white dark:bg-neutral-950 overflow-hidden w-full transition-colors duration-300">
@@ -217,28 +263,44 @@ export default function Community() {
               </h2>
             </div>
           </AnimatedSection>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" dir={direction}>
-            {activities.map((activity, index) => (
-              <AnimatedSection key={index} delay={index * 0.08} direction="up">
-                <Card className="rounded-2xl border-0 shadow-sm hover:shadow-lg transition-all h-full overflow-hidden group bg-white dark:bg-neutral-800">
-                  <div className="relative h-[200px] overflow-hidden">
-                    <img src={activity.image} alt={activity.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                    <div className="absolute bottom-3 left-4 right-4 flex items-center gap-2">
-                      <span className="text-xs px-2.5 py-1 bg-white/20 backdrop-blur-sm text-white rounded-full [font-family:'Almarai',Helvetica]">
-                        <Users className="w-3 h-3 inline mr-1" />
-                        {activity.members} {language === 'ar' ? 'عضو' : 'members'}
-                      </span>
+          {loading ? (
+            <div className="flex justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-green-700" />
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" dir={direction}>
+              {displayActivities.map((activity, index) => (
+                <AnimatedSection key={index} delay={index * 0.08} direction="up">
+                  <Card className="rounded-2xl border-0 shadow-sm hover:shadow-lg transition-all h-full overflow-hidden group bg-white dark:bg-neutral-800">
+                    <div className="relative h-[200px] overflow-hidden">
+                      <img
+                        src={activity.coverImage || "/figmaAssets/rectangle-2.png"}
+                        alt={language === 'ar' ? activity.nameAr : activity.nameEn}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        onError={(e) => { (e.target as HTMLImageElement).src = "/figmaAssets/rectangle-2.png"; }}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                      {activity.category && (
+                        <div className="absolute bottom-3 left-4 right-4 flex items-center gap-2">
+                          <span className="text-xs px-2.5 py-1 bg-white/20 backdrop-blur-sm text-white rounded-full [font-family:'Almarai',Helvetica]">
+                            {getCategoryLabel(activity.category)}
+                          </span>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                  <CardContent className="p-5">
-                    <h3 className="font-bold text-lg text-neutral-900 dark:text-white [font-family:'Almarai',Helvetica] mb-2 transition-colors duration-300">{activity.title}</h3>
-                    <p className="text-neutral-500 dark:text-neutral-400 text-sm leading-relaxed [font-family:'Almarai',Helvetica] transition-colors duration-300">{activity.desc}</p>
-                  </CardContent>
-                </Card>
-              </AnimatedSection>
-            ))}
-          </div>
+                    <CardContent className="p-5">
+                      <h3 className="font-bold text-lg text-neutral-900 dark:text-white [font-family:'Almarai',Helvetica] mb-2 transition-colors duration-300">
+                        {language === 'ar' ? activity.nameAr : (activity.nameEn || activity.nameAr)}
+                      </h3>
+                      <p className="text-neutral-500 dark:text-neutral-400 text-sm leading-relaxed [font-family:'Almarai',Helvetica] transition-colors duration-300 line-clamp-3">
+                        {language === 'ar' ? activity.descriptionAr : (activity.descriptionEn || activity.descriptionAr)}
+                      </p>
+                    </CardContent>
+                  </Card>
+                </AnimatedSection>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
@@ -260,7 +322,7 @@ export default function Community() {
             </div>
           </AnimatedSection>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5" dir={direction}>
-            {upcomingEvents.map((event, index) => (
+            {displayEvents.map((event, index) => (
               <AnimatedSection key={index} delay={index * 0.1} direction={index % 2 === 0 ? "left" : "right"}>
                 <Card className="rounded-2xl border-0 shadow-sm hover:shadow-lg transition-all bg-white dark:bg-neutral-900 overflow-hidden">
                   <CardContent className="p-6 flex items-center gap-5">
@@ -269,15 +331,28 @@ export default function Community() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1.5">
-                        <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium [font-family:'Almarai',Helvetica] ${event.categoryColor}`}>
-                          {event.category}
+                        <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium [font-family:'Almarai',Helvetica] ${getCategoryColor(event.category || 'academic')}`}>
+                          {getCategoryLabel(event.category || 'academic')}
                         </span>
                       </div>
-                      <h3 className="font-bold text-neutral-900 dark:text-white [font-family:'Almarai',Helvetica] mb-1 transition-colors duration-300">{event.title}</h3>
+                      <h3 className="font-bold text-neutral-900 dark:text-white [font-family:'Almarai',Helvetica] mb-1 transition-colors duration-300">
+                        {language === 'ar' ? (event.titleAr || event.title) : (event.titleEn || event.titleAr || event.title)}
+                      </h3>
                       <div className="flex items-center gap-3 text-sm text-neutral-500 dark:text-neutral-400 [font-family:'Almarai',Helvetica]">
-                        <span>{event.date}</span>
-                        <span>·</span>
-                        <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />{event.location}</span>
+                        <span>
+                          {event.date
+                            ? (typeof event.date === 'string' ? (language === 'ar' ? event.dateAr || event.date : event.dateEn || event.date) : new Date(event.date).toLocaleDateString(language === 'ar' ? 'ar-EG' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' }))
+                            : (language === 'ar' ? event.dateAr : event.dateEn)}
+                        </span>
+                        {(event.location || event.locationAr) && (
+                          <>
+                            <span>·</span>
+                            <span className="flex items-center gap-1">
+                              <MapPin className="w-3.5 h-3.5" />
+                              {language === 'ar' ? (event.locationAr || event.location) : (event.locationEn || event.location || event.locationAr)}
+                            </span>
+                          </>
+                        )}
                       </div>
                     </div>
                   </CardContent>

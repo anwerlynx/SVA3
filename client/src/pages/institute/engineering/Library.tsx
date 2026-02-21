@@ -8,9 +8,11 @@ import { BookOpen, Clock, Users, Wifi, BookMarked, Database, FileText, CheckCirc
 import { engineeringNavbar, engineeringFooter } from "@/lib/instituteConfig";
 import { PageHead } from "@/components/PageHead";
 import { useLanguage } from "@/context/LanguageContext";
+import { Breadcrumb } from "@/components/Breadcrumb";
 
 export default function EngineeringLibrary() {
   const { language, direction } = useLanguage();
+  const pageTitle = language === "ar" ? "المكتبة" : "Library";
 
   const features = [
     { icon: BookOpen, title: language === "ar" ? "مراجع هندسية" : "Engineering References", desc: language === "ar" ? "أكثر من 8000 كتاب ومرجع هندسي في مختلف التخصصات مع دوريات عالمية متخصصة" : "Over 8000+ books and engineering references across various specializations with specialized international journals" },
@@ -49,6 +51,16 @@ export default function EngineeringLibrary() {
       <PageHead title={language === "ar" ? "المكتبة - المعهد العالي للهندسة" : "Library - Higher Institute of Engineering"} description={language === "ar" ? "مكتبة المعهد العالي للهندسة - مراجع ومصادر هندسية" : "Higher Institute of Engineering Library - Engineering references and resources"} />
       <InstituteNavbar {...engineeringNavbar} />
       <InstituteHero title={language === "ar" ? "المكتبة" : "Library"} subtitle={language === "ar" ? "مراجع ومصادر هندسية متنوعة لدعم البحث والتعلم" : "Diverse engineering references and resources to support research and learning"} image="/figmaAssets/rectangle-17.png" overlayColor="from-blue-900/60 to-blue-900/80" />
+
+      <div className="max-w-[1200px] mx-auto px-4 md:px-8 pt-6">
+        <Breadcrumb
+          items={[
+            { label: language === 'ar' ? 'الرئيسية' : 'Home', href: '/' },
+            { label: language === 'ar' ? 'معهد الهندسة' : 'Engineering Institute', href: '/institute/engineering' },
+            { label: pageTitle },
+          ]}
+        />
+      </div>
 
       <section className="py-16 bg-blue-700 dark:bg-blue-900 transition-colors duration-300">
         <div className="max-w-[1000px] mx-auto px-4 md:px-8">

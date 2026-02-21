@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Breadcrumb } from "@/components/Breadcrumb";
@@ -7,44 +7,87 @@ import { AnimatedCounter } from "@/components/AnimatedCounter";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageHead } from "@/components/PageHead";
 import { useLanguage } from "@/context/LanguageContext";
-import { User, Mail, Search, Filter, GraduationCap, Award, BookOpen, Users } from "lucide-react";
+import { User, Mail, Search, Filter, GraduationCap, Award, BookOpen, Users, Loader2 } from "lucide-react";
 
-const facultyMembers = [
-    { id: 1, name: { ar: "أ.د. محمد أحمد", en: "Prof. Mohamed Ahmed" }, title: { ar: "عميد المعهد العالي للإدارة", en: "Dean - Higher Institute of Management" }, department: "management", image: "/figmaAssets/rectangle-10.png" },
-    { id: 2, name: { ar: "د. سارة علي", en: "Dr. Sarah Ali" }, title: { ar: "رئيس قسم المحاسبة", en: "Head of Accounting Dept." }, department: "accounting", image: "/figmaAssets/rectangle-12.png" },
-    { id: 3, name: { ar: "د. أحمد حسن", en: "Dr. Ahmed Hassan" }, title: { ar: "أستاذ مشارك - نظم المعلومات", en: "Associate Professor - MIS" }, department: "mis", image: "/figmaAssets/rectangle-16.png" },
-    { id: 4, name: { ar: "م. نهى محمود", en: "Eng. Noha Mahmoud" }, title: { ar: "مدرس مساعد - الهندسة المدنية", en: "Assistant Lecturer - Civil Engineering" }, department: "engineering", image: "/figmaAssets/rectangle-12-1.png" },
-    { id: 5, name: { ar: "أ.د. علي مصطفى", en: "Prof. Ali Mostafa" }, title: { ar: "عميد المعهد العالي للهندسة", en: "Dean - Higher Institute of Engineering" }, department: "engineering", image: "/figmaAssets/rectangle-17.png" },
-    { id: 6, name: { ar: "د. منى سعيد", en: "Dr. Mona Saeed" }, title: { ar: "رئيس قسم الهندسة المعمارية", en: "Head of Architecture Dept." }, department: "architecture", image: "/figmaAssets/rectangle-2.png" },
-    { id: 7, name: { ar: "د. كريم عبدالله", en: "Dr. Karim Abdullah" }, title: { ar: "أستاذ - إدارة الأعمال", en: "Professor - Business Administration" }, department: "management", image: "/figmaAssets/rectangle-3.png" },
-    { id: 8, name: { ar: "م. هاني إبراهيم", en: "Eng. Hany Ibrahim" }, title: { ar: "مدرس - هندسة القوى والاتصالات", en: "Lecturer - Power & Telecom Engineering" }, department: "engineering", image: "/figmaAssets/rectangle-10.png" },
-    { id: 9, name: { ar: "د. ليلى عمر", en: "Dr. Layla Omar" }, title: { ar: "أستاذ مساعد - العلوم المالية", en: "Assistant Professor - Finance" }, department: "finance", image: "/figmaAssets/rectangle-12.png" },
-];
+interface FacultyMember {
+    id: string;
+    nameAr: string;
+    nameEn: string;
+    titleAr: string;
+    titleEn: string;
+    departmentId: string;
+    institute: string;
+    email: string;
+    photoUrl: string | null;
+    isFeatured: boolean;
+    isActive: boolean;
+    sortOrder: number;
+}
 
-const departments = [
-    { key: "all", ar: "الكل", en: "All" },
-    { key: "management", ar: "الإدارة", en: "Management" },
-    { key: "engineering", ar: "الهندسة", en: "Engineering" },
-    { key: "accounting", ar: "المحاسبة", en: "Accounting" },
-    { key: "mis", ar: "نظم المعلومات", en: "MIS" },
-    { key: "finance", ar: "العلوم المالية", en: "Finance" },
-    { key: "architecture", ar: "العمارة", en: "Architecture" },
-];
+interface Department {
+    id: string;
+    nameAr: string;
+    nameEn: string;
+    institute: string;
+    slug: string;
+    [key: string]: any;
+}
 
 export default function Faculty() {
     const { t, language, direction } = useLanguage();
-    const [filter, setFilter] = useState("all");
+    const [filter, setFilter] = useState<string | null>(null);
     const [search, setSearch] = useState("");
+    const [facultyMembers, setFacultyMembers] = useState<FacultyMember[]>([]);
+    const [departments, setDepartments] = useState<Department[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                setLoading(true);
+                setError(null);
+
+                const [facultyRes, departmentsRes] = await Promise.all([
+                    fetch("/api/faculty"),
+                    fetch("/api/departments"),
+                ]);
+
+                if (!facultyRes.ok || !departmentsRes.ok) {
+                    throw new Error("Failed to fetch data");
+                }
+
+                const facultyData = await facultyRes.json();
+                const departmentsData = await departmentsRes.json();
+
+                setFacultyMembers(facultyData.data || []);
+                setDepartments(departmentsData || []);
+                setFilter(null); // Set to null to show all by default
+            } catch (err) {
+                setError(err instanceof Error ? err.message : "An error occurred");
+                console.error("Error fetching faculty data:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchData();
+    }, []);
 
     const filteredMembers = facultyMembers.filter(m => {
-        const matchesDept = filter === "all" || m.department === filter;
+        const matchesDept = filter === null || filter === "all" || m.departmentId === filter;
         const matchesSearch = search === "" ||
-            m.name.ar.includes(search) ||
-            m.name.en.toLowerCase().includes(search.toLowerCase()) ||
-            m.title.ar.includes(search) ||
-            m.title.en.toLowerCase().includes(search.toLowerCase());
+            m.nameAr.includes(search) ||
+            m.nameEn.toLowerCase().includes(search.toLowerCase()) ||
+            m.titleAr.includes(search) ||
+            m.titleEn.toLowerCase().includes(search.toLowerCase());
         return matchesDept && matchesSearch;
     });
+
+    const getDepartmentName = (departmentId: string) => {
+        const dept = departments.find(d => d.id === departmentId);
+        return dept ? (language === 'ar' ? dept.nameAr : dept.nameEn) : "";
+    };
 
     return (
         <div className="bg-white dark:bg-neutral-950 overflow-hidden w-full transition-colors duration-300">
@@ -82,10 +125,10 @@ export default function Faculty() {
                 <div className="max-w-[1200px] mx-auto px-4 md:px-8">
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-6" dir={direction}>
                         {[
-                            { icon: Users, value: 120, suffix: "+", label: language === 'ar' ? "عضو هيئة تدريس" : "Faculty Members" },
+                            { icon: Users, value: facultyMembers.length, suffix: "", label: language === 'ar' ? "عضو هيئة تدريس" : "Faculty Members" },
                             { icon: GraduationCap, value: 45, suffix: "+", label: language === 'ar' ? "حامل دكتوراه" : "PhD Holders" },
                             { icon: Award, value: 85, suffix: "+", label: language === 'ar' ? "بحث منشور" : "Published Research" },
-                            { icon: BookOpen, value: 6, suffix: "", label: language === 'ar' ? "أقسام أكاديمية" : "Academic Departments" },
+                            { icon: BookOpen, value: departments.length, suffix: "", label: language === 'ar' ? "أقسام أكاديمية" : "Academic Departments" },
                         ].map((stat, index) => (
                             <AnimatedSection key={index} delay={index * 0.1} direction="up">
                                 <div className="text-center">
@@ -121,16 +164,25 @@ export default function Faculty() {
 
                         {/* Department Filter */}
                         <div className="flex flex-wrap gap-2 justify-center md:justify-end">
+                            <button
+                                onClick={() => setFilter("all")}
+                                className={`px-4 py-2 rounded-full text-sm font-medium [font-family:'Almarai',Helvetica] transition-all ${filter === "all"
+                                        ? "bg-green-700 text-white"
+                                        : "bg-white dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 hover:bg-green-50 dark:hover:bg-neutral-700 border border-gray-200 dark:border-neutral-700"
+                                    }`}
+                            >
+                                {language === 'ar' ? "الكل" : "All"}
+                            </button>
                             {departments.map(dept => (
                                 <button
-                                    key={dept.key}
-                                    onClick={() => setFilter(dept.key)}
-                                    className={`px-4 py-2 rounded-full text-sm font-medium [font-family:'Almarai',Helvetica] transition-all ${filter === dept.key
+                                    key={dept.id}
+                                    onClick={() => setFilter(dept.id)}
+                                    className={`px-4 py-2 rounded-full text-sm font-medium [font-family:'Almarai',Helvetica] transition-all ${filter === dept.id
                                             ? "bg-green-700 text-white"
                                             : "bg-white dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 hover:bg-green-50 dark:hover:bg-neutral-700 border border-gray-200 dark:border-neutral-700"
                                         }`}
                                 >
-                                    {language === 'ar' ? dept.ar : dept.en}
+                                    {language === 'ar' ? dept.nameAr : dept.nameEn}
                                 </button>
                             ))}
                         </div>
@@ -141,7 +193,22 @@ export default function Faculty() {
             {/* Faculty Grid */}
             <section className="py-16">
                 <div className="max-w-[1200px] mx-auto px-4 md:px-8">
-                    {filteredMembers.length === 0 ? (
+                    {loading ? (
+                        <div className="text-center py-20">
+                            <Loader2 className="w-16 h-16 text-green-600 mx-auto mb-4 animate-spin" />
+                            <p className="text-neutral-500 dark:text-neutral-400 [font-family:'Almarai',Helvetica] text-lg">
+                                {language === 'ar' ? "جاري التحميل..." : "Loading..."}
+                            </p>
+                        </div>
+                    ) : error ? (
+                        <div className="text-center py-20">
+                            <User className="w-16 h-16 text-red-400 dark:text-red-600 mx-auto mb-4" />
+                            <p className="text-red-600 dark:text-red-400 [font-family:'Almarai',Helvetica] text-lg">
+                                {language === 'ar' ? "حدث خطأ في تحميل البيانات" : "Error loading data"}
+                            </p>
+                            <p className="text-neutral-500 dark:text-neutral-400 text-sm mt-2">{error}</p>
+                        </div>
+                    ) : filteredMembers.length === 0 ? (
                         <div className="text-center py-20">
                             <User className="w-16 h-16 text-gray-300 dark:text-neutral-600 mx-auto mb-4" />
                             <p className="text-neutral-500 dark:text-neutral-400 [font-family:'Almarai',Helvetica] text-lg">
@@ -155,8 +222,8 @@ export default function Faculty() {
                                     <Card className="rounded-2xl border-0 shadow-sm hover:shadow-lg transition-shadow bg-white dark:bg-neutral-900 overflow-hidden group cursor-pointer">
                                         <div className="h-[260px] overflow-hidden relative">
                                             <img
-                                                src={member.image}
-                                                alt={member.name[language]}
+                                                src={member.photoUrl || "/figmaAssets/rectangle-10.png"}
+                                                alt={language === 'ar' ? member.nameAr : member.nameEn}
                                                 className="w-full h-full object-cover"
                                             />
                                             <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center p-6">
@@ -172,10 +239,10 @@ export default function Faculty() {
                                         </div>
                                         <CardContent className="p-5 text-center">
                                             <h3 className="text-lg font-bold text-neutral-900 dark:text-white [font-family:'Almarai',Helvetica] mb-1 transition-colors duration-300">
-                                                {member.name[language]}
+                                                {language === 'ar' ? member.nameAr : member.nameEn}
                                             </h3>
                                             <p className="text-neutral-500 dark:text-neutral-400 text-sm [font-family:'Almarai',Helvetica] leading-relaxed">
-                                                {member.title[language]}
+                                                {language === 'ar' ? member.titleAr : member.titleEn}
                                             </p>
                                         </CardContent>
                                     </Card>

@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { AnimatedSection } from "@/components/AnimatedSection";
@@ -6,10 +6,24 @@ import { Card, CardContent } from "@/components/ui/card";
 import { PageHead } from "@/components/PageHead";
 import { Breadcrumb } from "@/components/Breadcrumb";
 import { useLanguage } from "@/context/LanguageContext";
-import { Camera, Film, X, ChevronLeft, ChevronRight, ZoomIn, Image as ImageIcon } from "lucide-react";
+import { Camera, Film, X, ChevronLeft, ChevronRight, ZoomIn, Image as ImageIcon, Loader2 } from "lucide-react";
+
+interface MediaApiItem {
+  id: string;
+  filename: string;
+  originalName: string;
+  mimeType: string;
+  size: number;
+  url: string;
+  altTextAr?: string;
+  altTextEn?: string;
+  folder: string;
+  uploadedBy?: string;
+  createdAt?: string;
+}
 
 interface GalleryItem {
-  id: number;
+  id: string;
   category: string;
   titleAr: string;
   titleEn: string;
@@ -22,52 +36,90 @@ export default function MediaGallery() {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [activeTab, setActiveTab] = useState<'photos' | 'videos'>('photos');
+  const [photos, setPhotos] = useState<GalleryItem[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const pageTitle = language === 'ar' ? 'معرض الصور والفيديو' : 'Media Gallery';
   const pageSubtitle = language === 'ar'
     ? 'لحظات مميزة من حياة معاهد الوادي العليا الأكاديمية والاجتماعية'
     : 'Special moments from the academic and social life at Valley Higher Institutes';
 
-  const categories = [
-    { id: 'all', label: language === 'ar' ? 'الكل' : 'All' },
-    { id: 'events', label: language === 'ar' ? 'الفعاليات' : 'Events' },
-    { id: 'graduation', label: language === 'ar' ? 'التخرج' : 'Graduation' },
-    { id: 'activities', label: language === 'ar' ? 'الأنشطة' : 'Activities' },
-    { id: 'campus', label: language === 'ar' ? 'الحرم الجامعي' : 'Campus' },
-  ];
+  // Fetch media from API
+  useEffect(() => {
+    const fetchMedia = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('/api/media');
+        const result = await response.json();
+        
+        // Map API data to GalleryItem interface
+        const mappedPhotos = result.data.map((item: MediaApiItem) => ({
+          id: item.id,
+          category: item.folder || 'general',
+          titleAr: item.altTextAr || item.originalName || item.filename,
+          titleEn: item.altTextEn || item.originalName || item.filename,
+          image: item.url,
+        }));
+        
+        setPhotos(mappedPhotos);
+      } catch (error) {
+        console.error('Failed to fetch media:', error);
+        setPhotos([]);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const photos: GalleryItem[] = [
-    { id: 1, category: 'events', titleAr: 'حفل افتتاح العام الدراسي', titleEn: 'Academic Year Opening Ceremony', image: '/gallery/events_1_1.jpg' },
-    { id: 2, category: 'graduation', titleAr: 'حفل تخرج دفعة 2025', titleEn: 'Class of 2025 Graduation', image: '/gallery/graduation_1_1.jpg' },
-    { id: 3, category: 'activities', titleAr: 'يوم الرياضة السنوي', titleEn: 'Annual Sports Day', image: '/gallery/activities_1_1.jpg' },
-    { id: 4, category: 'campus', titleAr: 'المبنى الرئيسي', titleEn: 'Main Building', image: '/gallery/campus_1_1.jpg' },
-    { id: 5, category: 'events', titleAr: 'ندوة علمية دولية', titleEn: 'International Scientific Seminar', image: '/gallery/events_1_2.jpg' },
-    { id: 6, category: 'graduation', titleAr: 'تكريم المتفوقين', titleEn: 'Honoring Top Students', image: '/gallery/graduation_1_2.jpg' },
-    { id: 7, category: 'activities', titleAr: 'مسابقة الابتكار', titleEn: 'Innovation Competition', image: '/gallery/activities_1_2.jpg' },
-    { id: 8, category: 'campus', titleAr: 'المكتبة المركزية', titleEn: 'Central Library', image: '/gallery/campus_1_2.jpg' },
-    { id: 9, category: 'events', titleAr: 'زيارة وفد أكاديمي', titleEn: 'Academic Delegation Visit', image: '/gallery/events_1_3.jpg' },
-    { id: 10, category: 'activities', titleAr: 'ورشة عمل تقنية', titleEn: 'Technical Workshop', image: '/gallery/activities_1_3.jpg' },
-    { id: 11, category: 'campus', titleAr: 'المعامل والمختبرات', titleEn: 'Labs & Laboratories', image: '/gallery/campus_1_3.jpg' },
-    { id: 12, category: 'graduation', titleAr: 'لحظات التخرج', titleEn: 'Graduation Moments', image: '/gallery/graduation_1_3.jpg' },
-  ];
+    fetchMedia();
+  }, []);
+
+  // Build categories dynamically from unique folders, with 'all' as the first option
+  const allFolders = useMemo(() => {
+    const folders = [...new Set(photos.map(p => p.category))].filter(Boolean).sort();
+    return folders;
+  }, [photos]);
+
+  const categories = useMemo(() => {
+    const baseCategories = [
+      { id: 'all', label: language === 'ar' ? 'الكل' : 'All' },
+    ];
+    
+    // Map folder values to category labels
+    const folderLabels: Record<string, { ar: string; en: string }> = {
+      'events': { ar: 'الفعاليات', en: 'Events' },
+      'graduation': { ar: 'التخرج', en: 'Graduation' },
+      'activities': { ar: 'الأنشطة', en: 'Activities' },
+      'campus': { ar: 'الحرم الجامعي', en: 'Campus' },
+      'general': { ar: 'عام', en: 'General' },
+    };
+
+    const folderCategories = allFolders.map(folder => ({
+      id: folder,
+      label: language === 'ar' 
+        ? (folderLabels[folder]?.ar || folder)
+        : (folderLabels[folder]?.en || folder),
+    }));
+
+    return [...baseCategories, ...folderCategories];
+  }, [allFolders, language]);
 
   const videos = [
-    { id: 1, category: 'events', titleAr: 'فيلم تسجيلي عن المعاهد', titleEn: 'Documentary Film About the Institutes', image: '/gallery/events_1_1.jpg' },
-    { id: 2, category: 'graduation', titleAr: 'أبرز لحظات حفل التخرج', titleEn: 'Graduation Ceremony Highlights', image: '/gallery/graduation_1_1.jpg' },
-    { id: 3, category: 'activities', titleAr: 'جولة في الحرم الجامعي', titleEn: 'Campus Tour', image: '/gallery/campus_1_1.jpg' },
-    { id: 4, category: 'events', titleAr: 'ملخص المؤتمر العلمي', titleEn: 'Scientific Conference Summary', image: '/gallery/events_1_2.jpg' },
-    { id: 5, category: 'activities', titleAr: 'يوم في حياة طالب', titleEn: 'A Day in Student Life', image: '/gallery/activities_1_1.jpg' },
-    { id: 6, category: 'campus', titleAr: 'جولة في المعامل الحديثة', titleEn: 'Tour of Modern Laboratories', image: '/gallery/campus_1_2.jpg' },
+    { id: '1', category: 'events', titleAr: 'فيلم تسجيلي عن المعاهد', titleEn: 'Documentary Film About the Institutes', image: '/gallery/events_1_1.jpg' },
+    { id: '2', category: 'graduation', titleAr: 'أبرز لحظات حفل التخرج', titleEn: 'Graduation Ceremony Highlights', image: '/gallery/graduation_1_1.jpg' },
+    { id: '3', category: 'activities', titleAr: 'جولة في الحرم الجامعي', titleEn: 'Campus Tour', image: '/gallery/campus_1_1.jpg' },
+    { id: '4', category: 'events', titleAr: 'ملخص المؤتمر العلمي', titleEn: 'Scientific Conference Summary', image: '/gallery/events_1_2.jpg' },
+    { id: '5', category: 'activities', titleAr: 'يوم في حياة طالب', titleEn: 'A Day in Student Life', image: '/gallery/activities_1_1.jpg' },
+    { id: '6', category: 'campus', titleAr: 'جولة في المعامل الحديثة', titleEn: 'Tour of Modern Laboratories', image: '/gallery/campus_1_2.jpg' },
   ];
 
   const filteredPhotos = useMemo(() =>
     activeCategory === 'all' ? photos : photos.filter(p => p.category === activeCategory),
-    [activeCategory, language]
+    [activeCategory, photos]
   );
 
   const filteredVideos = useMemo(() =>
     activeCategory === 'all' ? videos : videos.filter(v => v.category === activeCategory),
-    [activeCategory, language]
+    [activeCategory]
   );
 
   const openLightbox = (index: number) => {
@@ -176,7 +228,16 @@ export default function MediaGallery() {
       {activeTab === 'photos' && (
         <section className="py-12 md:py-16 bg-white dark:bg-neutral-950 transition-colors duration-300">
           <div className="max-w-[1200px] mx-auto px-4 md:px-8">
-            {filteredPhotos.length > 0 ? (
+            {loading ? (
+              <AnimatedSection>
+                <div className="flex flex-col items-center justify-center py-16 gap-4">
+                  <Loader2 className="w-12 h-12 text-green-700 dark:text-green-400 animate-spin" />
+                  <p className="text-neutral-400 dark:text-neutral-500 text-lg [font-family:'Almarai',Helvetica]">
+                    {language === 'ar' ? 'جاري التحميل...' : 'Loading photos...'}
+                  </p>
+                </div>
+              </AnimatedSection>
+            ) : filteredPhotos.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5" dir={direction}>
                 {filteredPhotos.map((photo, index) => (
                   <AnimatedSection key={photo.id} delay={index * 0.05} direction="up">

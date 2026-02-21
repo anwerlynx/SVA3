@@ -1,55 +1,518 @@
-# Valley Higher Institutes - University Website
+Project Overview
 
-## Overview
-The Valley Higher Institutes project is a professional Arabic university website designed to serve as a central portal for "معاهد الوادي العليا". It integrates two distinct institute sub-sites: the Management Institute (themed with green) and the Engineering Institute (themed with blue). Each institute maintains a full, dedicated website with specific pages tailored to its programs and services. The project's vision is to provide a comprehensive, modern, and accessible online presence that caters to prospective and current students, faculty, and stakeholders, showcasing the academic offerings and facilities of both institutes under a unified brand.
+Valley Higher Institutes (معاهد الوادي العليا) هو نظام ويب جامعي متكامل يعمل كبوابة مركزية تضم موقعين أكاديميين مستقلين تحت علامة مؤسسية موحدة:
 
-## User Preferences
-I prefer the AI to focus on high-level architectural and design decisions rather than getting bogged down in minute implementation details. When making changes or suggestions, prioritize solutions that maintain the distinct thematic identities of the Management (green) and Engineering (blue) institutes. Ensure all new features are integrated seamlessly into the existing bilingual (Arabic/English, RTL) structure. I want iterative development, with clear communication about proposed changes before they are implemented, especially for major structural or design modifications. Do not remove or alter existing routes unless explicitly instructed.
+🟢 Management Institute (العلوم الإدارية) – هوية خضراء
 
-## System Architecture
-The project employs a client-server architecture. The frontend is built with **React 18**, **Vite**, and **TypeScript**, styled using **Tailwind CSS** and **shadcn/ui** components. Client-side routing is managed by **wouter**. Dynamic and engaging user experiences are achieved with **Framer Motion** for animations and **Swiper.js** for sliders. **Lucide React** provides a consistent icon set. The primary font is **Almarai (Arabic)**, complemented by Inter.
+🔵 Engineering Institute (الهندسة والتكنولوجيا) – هوية زرقاء
 
-The backend is an **Express.js** server responsible for serving both API endpoints and static frontend files.
+المنصة مصممة كنظام Portal هرمي:
 
-**Key Design Principles:**
-- **Two-Institute Portal:** A central portal experience branching into two distinct institute websites, each with its own thematic color scheme (green for Management, blue for Engineering).
-- **Bilingual Support (Arabic/English):** Full RTL support with content available in both languages across all pages.
-- **Responsive Design:** Utilizes Tailwind CSS and shadcn/ui for adaptive layouts across various devices.
-- **SEO Optimization:** `PageHead` component for dynamic title, description, and OG tags on all pages.
-- **Modular Component-Based Structure:** Emphasizes reusable React components for UI elements and page sections.
-- **Theming:** Centralized configuration for institute-specific navigation and footer elements to maintain consistent branding.
-- **Unified Navigation:** A comprehensive portal navigation structure with organized dropdown menus, dynamically linking to various central and institute-specific pages.
+Main Campus Portal
+   ├── Management Institute Website
+   └── Engineering Institute Website
 
-**Core Features Implemented:**
-- Dynamic hero sections with slideshows.
-- Animated counters and scroll-triggered animations.
-- Comprehensive news listings with detail pages, filtering, and pagination.
-- Media galleries with categorization and lightbox functionality.
-- Dedicated pages for admissions, student affairs, quality assurance, committees, and library services.
-- Institute-specific department pages with detailed information.
-- Contact forms and newsletter subscription with backend integration.
-- Full-site search functionality via a modal interface.
-- Consistent footer with extensive sitemap links.
 
-## Recent Changes
-- 2026-02-20: Redesigned Community page with bilingual support, standard hero, breadcrumbs, stats counters, activity cards, upcoming events
-- 2026-02-20: Redesigned Research page with bilingual support, standard hero, breadcrumbs, stats counters, research areas, publications, conferences
-- 2026-02-20: Enhanced Faculty page with breadcrumbs and animated stats section (120+ members, 45+ PhD holders, 85+ publications, 6 departments)
-- 2026-02-20: Enhanced Services page with services overview grid (4 quick link cards) and fixed section background alternation
-- 2026-02-20: Enhanced Board of Directors, Partners, Chairman's Word, Home pages with stats counters and quick links
-- 2026-02-20: Redesigned Students page with bilingual support, standard hero, breadcrumbs, stats counters, admission steps, fees, scholarships, FAQ
-- 2026-02-20: Redesigned Library page with bilingual support, hero search, breadcrumbs, stats counters, filterable resources, library info, service links
+كل معهد يمتلك:
 
-## External Dependencies
-- **React**: Frontend UI library.
-- **Vite**: Frontend build tool.
-- **TypeScript**: Superset of JavaScript for type safety.
-- **Tailwind CSS**: Utility-first CSS framework.
-- **shadcn/ui**: Reusable UI components.
-- **Framer Motion**: Animation library.
-- **Swiper.js**: Touch slider library.
-- **Lucide React**: Icon library.
-- **wouter**: Client-side routing library for React.
-- **Express.js**: Backend web framework for Node.js.
-- **Almarai**: Arabic web font.
-- **Inter**: Complementary web font.
+صفحات مستقلة
+
+هيكل ملاحي مستقل
+
+أقسام أكاديمية خاصة
+
+صفحات قبول وخدمات خاصة
+
+نظام أخبار مستقل
+
+هوية بصرية خاصة به
+
+مع الحفاظ على:
+
+علامة مؤسسية موحدة
+
+نظام تنقل عام
+
+دعم لغتين كامل
+
+تجربة استخدام متناسقة
+
+User & Product Vision
+
+المشروع ليس مجرد موقع عرض معلومات، بل:
+
+منصة مؤسسية متكاملة
+
+جاهزة للتوسع
+
+قابلة للربط بأي Backend متقدم
+
+تدعم إدارة محتوى مستقبلية
+
+مهيأة للإنتاج (Production-Oriented)
+
+التركيز المعماري:
+
+وضوح الفصل بين المعهدين
+
+الحفاظ على الهوية اللونية لكل معهد
+
+دعم RTL كامل
+
+استقرار الثيم الداكن
+
+منع أي Dead Links
+
+ضمان عمق هيكلي حقيقي (Archive → Detail)
+
+System Architecture
+1️⃣ Frontend Architecture
+Core Stack
+
+React 18
+
+Vite
+
+TypeScript
+
+Tailwind CSS
+
+shadcn/ui
+
+Framer Motion
+
+Swiper.js
+
+Lucide React
+
+wouter (Routing)
+
+Architectural Pattern
+
+المشروع يتبع:
+
+Component-Based Architecture
+
+Modular Page Structure
+
+Config-Driven Navigation
+
+Thematic Segmentation
+
+Portal Structure
+🌐 Public Main Portal
+
+Home
+
+About
+
+Board
+
+Vision & Mission
+
+Chairman Word
+
+Welcome Message
+
+Partners
+
+Central Admission
+
+Quality
+
+Committees
+
+Library
+
+News
+
+Media Gallery
+
+Contact
+
+Sitemap
+
+🟢 Management Institute
+
+Route Base:
+
+/institute/management
+
+
+Sections:
+
+About
+
+Departments
+
+Faculty
+
+Admission
+
+Student Services
+
+Training
+
+Activities
+
+News
+
+Quality
+
+Library
+
+Contact
+
+Theme:
+
+Green Accent
+
+Soft Gradients
+
+Formal Academic Tone
+
+🔵 Engineering Institute
+
+Route Base:
+
+/institute/engineering
+
+
+Sections:
+
+About
+
+Departments
+
+Faculty
+
+Admission
+
+Student Services
+
+Training
+
+Research
+
+Labs
+
+News
+
+Quality
+
+Library
+
+Contact
+
+Theme:
+
+Blue Industrial Accent
+
+Stronger Contrast
+
+Technical Feel
+
+Routing Architecture
+
+Client-side routing via wouter
+
+Dynamic Routes:
+
+/news/:id
+
+/institute/*/department/:slug
+
+/faculty/:id
+
+Hierarchical Navigation
+
+Breadcrumb-ready structure
+
+No route is removed without explicit instruction.
+
+Theming & Branding System
+Dual Institute Theming
+Institute       Primary Color   Tone
+Management      Green   Financial / Administrative
+Engineering     Blue    Technical / Industrial
+
+Each institute:
+
+Custom hero styling
+
+Color-based badges
+
+Section accents
+
+Themed CTA buttons
+
+Distinct gradients
+
+Dark Mode
+
+Tailwind dark: strategy
+
+Fully supported across:
+
+Public
+
+Institutes
+
+Admin
+
+No visual collapse
+
+Shadows reduced in dark
+
+Borders enhanced in dark
+
+Typography
+
+Arabic: Almarai
+
+English: Inter
+
+Consistent scale
+
+Controlled hierarchy
+
+Bilingual System
+
+Full Arabic (RTL)
+
+Full English (LTR)
+
+Dynamic <html dir>
+
+Dropdown alignment RTL-aware
+
+Layout respects logical spacing
+
+No hard layout break on language switch
+
+Content strategy:
+
+UI text managed via translations.ts
+
+Structural text bilingual
+
+Some long content embedded conditionally (future CMS candidate)
+
+UX System
+Implemented
+
+Standard Hero Template
+
+Breadcrumb-ready layout
+
+Scroll-triggered animations
+
+Animated stats counters
+
+Filterable grids
+
+Paginated news
+
+Media lightbox
+
+Search modal
+
+ScrollToTop
+
+BackToTop
+
+Toast notifications
+
+Structural Philosophy
+
+Every archive must lead to detail.
+
+Every card must have depth.
+
+No decorative dead elements.
+
+Backend Architecture
+Express.js Server
+
+Responsibilities:
+
+REST API
+
+Static frontend serving
+
+Form handling
+
+Newsletter handling
+
+Media upload endpoints
+
+Admin authentication (JWT-based, pending hardening)
+
+API Domains
+
+/api/news
+
+/api/faculty
+
+/api/departments
+
+/api/library
+
+/api/research
+
+/api/events
+
+/api/activities
+
+/api/users
+
+/api/settings
+
+/api/pages
+
+Current State:
+
+Backend fully wired to frontend for all major content types.
+
+API endpoints serve: news, faculty, departments, events, library, research, media, FAQs, activities, announcements, contact, newsletter.
+
+Admin CRUD modules mostly complete.
+
+Admin System
+
+Located under:
+
+/admin
+
+
+Functional:
+
+Dashboard
+
+Analytics
+
+News Manager (CRUD)
+
+Faculty Manager (CRUD)
+
+Departments Manager (CRUD)
+
+Media Manager
+
+Users Manager
+
+SEO Settings
+
+Site Settings
+
+Events Manager (CRUD)
+
+Library Manager (CRUD)
+
+Research Manager (CRUD)
+
+Activities Manager (CRUD)
+
+Pages CMS Manager (CRUD)
+
+Announcements Manager (CRUD)
+
+FAQs Manager (CRUD)
+
+Courses Manager (CRUD)
+
+Homepage Manager (Settings-based hero, stats, announcements control)
+
+Student Affairs Manager (Admissions, scholarships, links to FAQs/Announcements)
+
+Academic System Manager (Calendar, semester events, links to Courses/Departments)
+
+System Health Manager (Real-time system monitoring, database status, API health, performance metrics)
+
+Contact Messages Manager (View, read, delete contact form submissions)
+
+Newsletter Manager (View subscribers, export CSV)
+
+Placeholder Modules:
+
+(None remaining - all admin modules are now fully implemented)
+
+SEO Architecture
+
+PageHead per page
+
+Dynamic meta
+
+OG tags
+
+Server-side sitemap.xml (65+ routes)
+
+robots.txt endpoint
+
+Clean routes
+
+Semantic HTML
+
+Security
+
+bcrypt password hashing
+
+JWT token authentication
+
+Rate limiting on login endpoint
+
+Security headers (X-Content-Type-Options, X-Frame-Options, etc.)
+
+Mock tokens restricted to development only
+
+Performance
+
+React.lazy + Suspense for all pages (except Home)
+
+Cache-Control headers for API, static assets, HTML
+
+Image error fallbacks across dynamic content
+
+Design Principles
+
+No structural duplication.
+
+No theme inconsistency.
+
+No broken RTL.
+
+No route without depth.
+
+No placeholder without planned execution.
+
+No backend bypass before security hardening.
+
+Current Maturity
+
+Frontend UI/UX: ~95% complete
+Backend Capability: ~95% scaffolded
+Data Binding: ~95% utilized (Home hero/stats, Services FAQ, CentralAdmission FAQ, Community, AcademicCalendar, GraduationParties, AvailableJobs all wired to APIs)
+Admin Modules: 100% implemented (no placeholders remaining)
+Production Readiness: Security hardened, cache headers set, deployment configured
+
+Strategic Direction
+
+Next logical phases:
+
+1️⃣ Full production deployment and testing
+2️⃣ Wire remaining static content to CMS
+3️⃣ Advanced features (user portal, online applications)
+
+Architectural Identity
+
+This is not:
+
+A startup landing page
+
+A SaaS dashboard
+
+A template theme
+
+This is:
+
+A multi-portal academic institutional ecosystem.

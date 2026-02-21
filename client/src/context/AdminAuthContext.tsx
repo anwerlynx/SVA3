@@ -21,6 +21,7 @@ export interface AdminUser {
 interface AdminAuthContextType {
     admin: AdminUser | null;
     isAuthenticated: boolean;
+    token: string | null;
     login: (email: string, password: string) => Promise<boolean>;
     logout: () => void;
     hasPermission: (permission: Permission) => boolean;
@@ -123,18 +124,49 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
         }
     });
 
+    const [token, setToken] = useState<string | null>(() => {
+        try {
+            return localStorage.getItem("admin_token");
+        } catch {
+            return null;
+        }
+    });
+
     const isAuthenticated = admin !== null;
 
     const login = async (email: string, password: string): Promise<boolean> => {
-        // Simulate network delay
+        try {
+            // Try API login first
+            const response = await fetch("/api/admin/auth/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email, password }),
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                setAdmin(data.admin);
+                setToken(data.token);
+                localStorage.setItem("admin_user", JSON.stringify(data.admin));
+                localStorage.setItem("admin_token", data.token);
+                return true;
+            }
+        } catch (e) {
+            // Fall back to demo login
+        }
+
+        // Fallback: Demo login
         await new Promise(r => setTimeout(r, 600));
         const account = DEMO_ACCOUNTS.find(
             a => a.email.toLowerCase() === email.toLowerCase() && a.password === password
         );
         if (account) {
             const { password: _, ...user } = account;
+            const mockToken = `mock-token-${user.id}`;
             setAdmin(user);
+            setToken(mockToken);
             localStorage.setItem("admin_user", JSON.stringify(user));
+            localStorage.setItem("admin_token", mockToken);
             return true;
         }
         return false;
@@ -142,7 +174,9 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
 
     const logout = () => {
         setAdmin(null);
+        setToken(null);
         localStorage.removeItem("admin_user");
+        localStorage.removeItem("admin_token");
     };
 
     const hasPermission = (permission: Permission): boolean => {
@@ -151,7 +185,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
     };
 
     return (
-        <AdminAuthContext.Provider value={{ admin, isAuthenticated, login, logout, hasPermission }}>
+        <AdminAuthContext.Provider value={{ admin, isAuthenticated, token, login, logout, hasPermission }}>
             {children}
         </AdminAuthContext.Provider>
     );

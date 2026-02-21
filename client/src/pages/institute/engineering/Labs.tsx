@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { FlaskConical, Zap, Building2, Cpu, Settings, Droplets, Ruler } from "lucide-react";
 import { PageHead } from "@/components/PageHead";
 import { useLanguage } from "@/context/LanguageContext";
+import { Breadcrumb } from "@/components/Breadcrumb";
 
 const labsAr = [
   { icon: Zap, name: "معمل الهندسة الكهربائية", desc: "مجهز بأحدث أجهزة القياس والمعدات الكهربائية لتدريب الطلاب على الدوائر الكهربائية وآلات القوى والتحكم", equipment: ["أجهزة قياس رقمية", "مولدات ومحركات كهربائية", "أجهزة تحليل الطيف", "معدات التحكم الآلي"] },
@@ -28,6 +29,7 @@ const labsEn = [
 
 export default function EngineeringLabs() {
   const { language, direction } = useLanguage();
+  const pageTitle = language === "ar" ? "المعامل والمرافق" : "Labs and Facilities";
   const labs = language === "ar" ? labsAr : labsEn;
   return (
     <div className="bg-white dark:bg-neutral-950 overflow-hidden w-full transition-colors duration-300">
@@ -42,6 +44,16 @@ export default function EngineeringLabs() {
         image="/figmaAssets/rectangle-17.png" 
         overlayColor="from-blue-900/60 to-blue-900/80" 
       />
+
+      <div className="max-w-[1200px] mx-auto px-4 md:px-8 pt-6">
+        <Breadcrumb
+          items={[
+            { label: language === 'ar' ? 'الرئيسية' : 'Home', href: '/' },
+            { label: language === 'ar' ? 'معهد الهندسة' : 'Engineering Institute', href: '/institute/engineering' },
+            { label: pageTitle },
+          ]}
+        />
+      </div>
 
       <section className="py-20 md:py-28 bg-white dark:bg-neutral-950 transition-colors duration-300">
         <div className="max-w-[1100px] mx-auto px-4 md:px-8">

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { AnimatedSection } from "@/components/AnimatedSection";
@@ -11,6 +11,18 @@ import { Calendar, BookOpen, GraduationCap, Clock, AlertCircle, FileText, Users 
 export default function AcademicCalendar() {
   const { language, direction } = useLanguage();
   const [activeSemester, setActiveSemester] = useState('first');
+  const [apiEvents, setApiEvents] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetch('/api/events')
+      .then(r => r.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setApiEvents(data.filter((e: any) => e.status === 'published' && e.category === 'academic'));
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const pageTitle = language === 'ar' ? 'التقويم الأكاديمي' : 'Academic Calendar';
   const pageSubtitle = language === 'ar'
@@ -198,6 +210,43 @@ export default function AcademicCalendar() {
           </div>
         </div>
       </section>
+
+      {apiEvents.length > 0 && (
+        <section className="py-12 md:py-16 bg-white dark:bg-neutral-950 transition-colors duration-300">
+          <div className="max-w-[900px] mx-auto px-4 md:px-8">
+            <AnimatedSection>
+              <div className="text-center mb-10" dir={direction}>
+                <h3 className="text-2xl md:text-3xl font-bold text-neutral-900 dark:text-white [font-family:'Almarai',Helvetica] transition-colors duration-300">
+                  {language === 'ar' ? 'فعاليات أكاديمية إضافية' : 'Additional Academic Events'}
+                </h3>
+              </div>
+            </AnimatedSection>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4" dir={direction}>
+              {apiEvents.map((event, index) => (
+                <AnimatedSection key={event.id || index} delay={index * 0.05} direction="up">
+                  <Card className="rounded-2xl border-0 shadow-sm hover:shadow-md transition-all bg-white dark:bg-neutral-800">
+                    <CardContent className="p-5 flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-full bg-green-50 dark:bg-green-900/20 flex items-center justify-center shrink-0">
+                        <Calendar className="w-5 h-5 text-green-700 dark:text-green-500" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-bold text-neutral-900 dark:text-white [font-family:'Almarai',Helvetica] text-sm mb-1">
+                          {language === 'ar' ? (event.titleAr || event.title) : (event.titleEn || event.titleAr || event.title)}
+                        </h4>
+                        {event.date && (
+                          <span className="text-xs text-neutral-500 dark:text-neutral-400 [font-family:'Almarai',Helvetica]">
+                            {new Date(event.date).toLocaleDateString(language === 'ar' ? 'ar-EG' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                          </span>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </AnimatedSection>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       <section className="py-16 md:py-20 bg-white dark:bg-neutral-950 transition-colors duration-300">
         <div className="max-w-[900px] mx-auto px-4 md:px-8">

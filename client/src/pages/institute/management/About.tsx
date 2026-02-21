@@ -7,9 +7,11 @@ import { Eye, Target, Users, Star, Heart, Shield } from "lucide-react";
 import { managementNavbar, managementFooter } from "@/lib/instituteConfig";
 import { PageHead } from "@/components/PageHead";
 import { useLanguage } from "@/context/LanguageContext";
+import { Breadcrumb } from "@/components/Breadcrumb";
 
 export default function ManagementAbout() {
   const { language, direction } = useLanguage();
+  const pageTitle = language === "ar" ? "من نحن" : "About Us";
 
   const values = [
     { icon: Star, title: language === "ar" ? "التميز" : "Excellence", desc: language === "ar" ? "نسعى لأعلى مستويات الجودة الأكاديمية" : "We strive for the highest levels of academic quality" },
@@ -23,6 +25,16 @@ export default function ManagementAbout() {
       <PageHead title={language === "ar" ? "من نحن - المعهد العالي للإدارة" : "About Us - Higher Institute of Management"} description={language === "ar" ? "تعرف على المعهد العالي للإدارة، رؤيته ورسالته وكلمة العميد" : "Learn about the Higher Institute of Management, its vision, mission, and dean's message"} />
       <InstituteNavbar {...managementNavbar} />
       <InstituteHero title={language === "ar" ? "من نحن" : "About Us"} subtitle={language === "ar" ? "تعرف على المعهد العالي للإدارة والمالية ونظم المعلومات" : "Learn about the Higher Institute of Management, Finance, and Information Systems"} image="/figmaAssets/rectangle-16.png" overlayColor="from-green-900/60 to-green-900/80" />
+
+      <div className="max-w-[1200px] mx-auto px-4 md:px-8 pt-6">
+        <Breadcrumb
+          items={[
+            { label: language === 'ar' ? 'الرئيسية' : 'Home', href: '/' },
+            { label: language === 'ar' ? 'معهد الإدارة' : 'Management Institute', href: '/institute/management' },
+            { label: pageTitle },
+          ]}
+        />
+      </div>
 
       <section className="py-20 md:py-28 bg-white dark:bg-neutral-950 transition-colors duration-300">
         <div className="max-w-[1000px] mx-auto px-4 md:px-8">

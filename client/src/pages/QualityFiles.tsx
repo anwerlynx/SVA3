@@ -4,6 +4,7 @@ import { AnimatedSection } from "@/components/AnimatedSection";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageHead } from "@/components/PageHead";
 import { useLanguage } from "@/context/LanguageContext";
+import { Breadcrumb } from "@/components/Breadcrumb";
 import { FileText, Download, FolderOpen } from "lucide-react";
 
 export default function QualityFiles() {
@@ -102,6 +103,16 @@ export default function QualityFiles() {
           </AnimatedSection>
         </div>
       </section>
+
+      <div className="max-w-[1200px] mx-auto px-4 md:px-8 pt-6">
+        <Breadcrumb
+          items={[
+            { label: language === 'ar' ? 'الرئيسية' : 'Home', href: '/' },
+            { label: language === 'ar' ? 'الجودة المركزية' : 'Central Quality', href: '/quality' },
+            { label: pageTitle },
+          ]}
+        />
+      </div>
 
       <section className="py-20 md:py-28 bg-white dark:bg-neutral-950 transition-colors duration-300">
         <div className="max-w-[1200px] mx-auto px-4 md:px-8">

@@ -7,9 +7,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Eye, Target, Users, Star, Heart, Shield, Lightbulb } from "lucide-react";
 import { PageHead } from "@/components/PageHead";
 import { useLanguage } from "@/context/LanguageContext";
+import { Breadcrumb } from "@/components/Breadcrumb";
 
 export default function EngineeringAbout() {
   const { language, direction } = useLanguage();
+  const pageTitle = language === "ar" ? "من نحن" : "About Us";
 
   const values = [
     { icon: Star, title: language === "ar" ? "التميز الهندسي" : "Engineering Excellence", desc: language === "ar" ? "نسعى لأعلى مستويات الجودة في التعليم الهندسي" : "We strive for the highest quality standards in engineering education" },
@@ -23,6 +25,16 @@ export default function EngineeringAbout() {
       <PageHead title={language === "ar" ? "من نحن - المعهد العالي للهندسة" : "About Us - Higher Institute of Engineering"} description={language === "ar" ? "تعرف على المعهد العالي للهندسة، رؤيته ورسالته وكلمة العميد" : "Learn about the Higher Institute of Engineering, its vision, mission, and dean's message"} />
       <InstituteNavbar {...engineeringNavbar} />
       <InstituteHero title={language === "ar" ? "من نحن" : "About Us"} subtitle={language === "ar" ? "تعرف على المعهد العالي للهندسة والتكنولوجيا" : "Learn about the Higher Institute of Engineering and Technology"} image="/figmaAssets/rectangle-17.png" overlayColor="from-blue-900/60 to-blue-900/80" />
+
+      <div className="max-w-[1200px] mx-auto px-4 md:px-8 pt-6">
+        <Breadcrumb
+          items={[
+            { label: language === 'ar' ? 'الرئيسية' : 'Home', href: '/' },
+            { label: language === 'ar' ? 'معهد الهندسة' : 'Engineering Institute', href: '/institute/engineering' },
+            { label: pageTitle },
+          ]}
+        />
+      </div>
 
       <section className="py-20 md:py-28 bg-white dark:bg-neutral-950 transition-colors duration-300">
         <div className="max-w-[1000px] mx-auto px-4 md:px-8">

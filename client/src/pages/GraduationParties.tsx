@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Breadcrumb } from "@/components/Breadcrumb";
@@ -9,6 +10,18 @@ import { GraduationCap, Calendar, Camera, Star, Award, MapPin, ArrowRight } from
 
 export default function GraduationParties() {
   const { language, direction } = useLanguage();
+  const [mediaItems, setMediaItems] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetch('/api/media')
+      .then(r => r.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setMediaItems(data.filter((m: any) => m.type === 'image').slice(0, 6));
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const pageTitle = language === 'ar' ? 'حفلات التخرج' : 'Graduation Parties';
   const pageSubtitle = language === 'ar'
@@ -193,20 +206,32 @@ export default function GraduationParties() {
             </div>
           </AnimatedSection>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" dir={direction}>
-            {pastCeremonies.map((ceremony, index) => (
-              <AnimatedSection key={ceremony.id} delay={index * 0.05} direction="up">
-                <Card className="rounded-2xl border-0 shadow-sm hover:shadow-lg transition-all h-full group bg-white dark:bg-neutral-900 overflow-hidden">
-                  <div className="aspect-[4/3] bg-green-50 dark:bg-green-900/20 flex items-center justify-center group-hover:bg-green-100 dark:group-hover:bg-green-900/40 transition-colors">
-                    <Camera className="w-12 h-12 text-green-300 dark:text-green-700" />
-                  </div>
-                  <CardContent className="p-4">
-                    <h3 className="font-bold text-sm text-neutral-900 dark:text-white [font-family:'Almarai',Helvetica] transition-colors duration-300 text-center" dir={direction}>
-                      {ceremony.title}
-                    </h3>
-                  </CardContent>
-                </Card>
-              </AnimatedSection>
-            ))}
+            {pastCeremonies.map((ceremony, index) => {
+              const mediaImage = mediaItems[index];
+              return (
+                <AnimatedSection key={ceremony.id} delay={index * 0.05} direction="up">
+                  <Card className="rounded-2xl border-0 shadow-sm hover:shadow-lg transition-all h-full group bg-white dark:bg-neutral-900 overflow-hidden">
+                    <div className="aspect-[4/3] bg-green-50 dark:bg-green-900/20 flex items-center justify-center group-hover:bg-green-100 dark:group-hover:bg-green-900/40 transition-colors overflow-hidden">
+                      {mediaImage?.url ? (
+                        <img
+                          src={mediaImage.url}
+                          alt={ceremony.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                        />
+                      ) : (
+                        <Camera className="w-12 h-12 text-green-300 dark:text-green-700" />
+                      )}
+                    </div>
+                    <CardContent className="p-4">
+                      <h3 className="font-bold text-sm text-neutral-900 dark:text-white [font-family:'Almarai',Helvetica] transition-colors duration-300 text-center" dir={direction}>
+                        {ceremony.title}
+                      </h3>
+                    </CardContent>
+                  </Card>
+                </AnimatedSection>
+              );
+            })}
           </div>
         </div>
       </section>

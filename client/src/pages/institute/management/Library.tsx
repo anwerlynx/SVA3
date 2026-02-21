@@ -8,9 +8,11 @@ import { BookOpen, Clock, Users, Wifi, BookMarked, Database, FileText, CheckCirc
 import { managementNavbar, managementFooter } from "@/lib/instituteConfig";
 import { PageHead } from "@/components/PageHead";
 import { useLanguage } from "@/context/LanguageContext";
+import { Breadcrumb } from "@/components/Breadcrumb";
 
 export default function ManagementLibrary() {
   const { language, direction } = useLanguage();
+  const pageTitle = language === "ar" ? "المكتبة" : "Library";
 
   const features = [
     { icon: BookOpen, title: language === "ar" ? "مراجع متنوعة" : "Diverse References", desc: language === "ar" ? "أكثر من 5000 كتاب ومرجع أكاديمي في مجالات الإدارة والأعمال والمحاسبة والعلوم المالية ونظم المعلومات" : "Over 5,000 books and academic references in management, business, accounting, financial sciences, and information systems" },
@@ -47,6 +49,16 @@ export default function ManagementLibrary() {
       <PageHead title={language === "ar" ? "المكتبة - المعهد العالي للإدارة" : "Library - Higher Institute of Management"} description={language === "ar" ? "مكتبة المعهد العالي للإدارة - مصادر ومراجع أكاديمية متنوعة" : "Higher Institute of Management Library - Diverse academic sources and references"} />
       <InstituteNavbar {...managementNavbar} />
       <InstituteHero title={language === "ar" ? "المكتبة" : "Library"} subtitle={language === "ar" ? "مصادر ومراجع أكاديمية متنوعة لدعم رحلتك التعليمية" : "Diverse academic sources and references to support your educational journey"} image="/figmaAssets/rectangle-16.png" overlayColor="from-green-900/60 to-green-900/80" />
+
+      <div className="max-w-[1200px] mx-auto px-4 md:px-8 pt-6">
+        <Breadcrumb
+          items={[
+            { label: language === 'ar' ? 'الرئيسية' : 'Home', href: '/' },
+            { label: language === 'ar' ? 'معهد الإدارة' : 'Management Institute', href: '/institute/management' },
+            { label: pageTitle },
+          ]}
+        />
+      </div>
 
       <section className="py-16 bg-green-700 dark:bg-green-900 transition-colors duration-300">
         <div className="max-w-[1000px] mx-auto px-4 md:px-8">

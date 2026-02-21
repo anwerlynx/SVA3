@@ -6,10 +6,12 @@ import { AnimatedSection } from "@/components/AnimatedSection";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageHead } from "@/components/PageHead";
 import { useLanguage } from "@/context/LanguageContext";
+import { Breadcrumb } from "@/components/Breadcrumb";
 import {
   BookOpen, Palette, Users, Trophy, Heart,
-  GraduationCap, Mic2, Handshake, Medal, Sparkles
+  GraduationCap, Mic2, Handshake, Medal, Sparkles, Loader2
 } from "lucide-react";
+import { useState, useEffect } from "react";
 
 const activityCategories = [
   {
@@ -88,7 +90,29 @@ const categoryIcons: Record<string, typeof BookOpen> = {
 };
 
 export default function Activities() {
-  const { language } = useLanguage();
+  const { language, direction } = useLanguage();
+  const [activitiesData, setActivitiesData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/activities?institute=management')
+      .then(res => res.json())
+      .then(data => {
+        setActivitiesData(data);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, []);
+
+  const pageTitle = language === "ar" ? "الأنشطة الطلابية" : "Student Activities";
+
+  // Group activities by category
+  const activitiesByCategory = activitiesData.reduce((acc: Record<string, any[]>, activity: any) => {
+    const cat = activity.category || 'academic';
+    if (!acc[cat]) acc[cat] = [];
+    acc[cat].push(activity);
+    return acc;
+  }, {});
 
   return (
     <div className="bg-white dark:bg-neutral-950 overflow-hidden w-full transition-colors duration-300">
@@ -96,8 +120,24 @@ export default function Activities() {
       <InstituteNavbar {...managementNavbar} />
       <InstituteHero title={language === "ar" ? "الأنشطة الطلابية" : "Student Activities"} subtitle={language === "ar" ? "تنمية شاملة لشخصية الطالب من خلال أنشطة متنوعة" : "Comprehensive student personality development through diverse activities"} image="/figmaAssets/rectangle-2.png" overlayColor="from-green-900/60 to-green-900/80" />
 
+      <div className="max-w-[1200px] mx-auto px-4 md:px-8 pt-6">
+        <Breadcrumb
+          items={[
+            { label: language === 'ar' ? 'الرئيسية' : 'Home', href: '/' },
+            { label: language === 'ar' ? 'معهد الإدارة' : 'Management Institute', href: '/institute/management' },
+            { label: pageTitle },
+          ]}
+        />
+      </div>
+
       <section className="py-20 md:py-28 bg-white dark:bg-neutral-950 transition-colors duration-300">
         <div className="max-w-[1100px] mx-auto px-4 md:px-8">
+          {loading ? (
+            <div className="flex justify-center items-center py-20">
+              <Loader2 className="w-10 h-10 text-green-700 animate-spin" />
+            </div>
+          ) : (
+          <>
           <AnimatedSection>
             <div className="text-center mb-16" dir={direction}>
               <div className="flex items-center justify-center gap-3 mb-4">
@@ -125,42 +165,47 @@ export default function Activities() {
               </AnimatedSection>
             ))}
           </div>
+          </>
+          )}
         </div>
       </section>
 
-      {activityCategories.map((category, catIndex) => (
-        <section key={category.id} id={category.id} className={`py-20 ${catIndex % 2 === 0 ? "bg-green-50 dark:bg-neutral-900" : "bg-white dark:bg-neutral-950"} transition-colors duration-300`}>
-          <div className="max-w-[1100px] mx-auto px-4 md:px-8">
-            <AnimatedSection>
-              <div className="text-center mb-12" dir={direction}>
-                <category.icon className="w-10 h-10 text-green-700 dark:text-green-500 mx-auto mb-4 transition-colors duration-300" />
-                <h2 className="text-3xl font-bold text-neutral-900 dark:text-white [font-family:'Almarai',Helvetica] transition-colors duration-300">{language === "ar" ? category.titleAr : category.titleEn}</h2>
-                <p className="text-neutral-500 dark:text-neutral-400 text-base mt-4 max-w-[600px] mx-auto [font-family:'Almarai',Helvetica] transition-colors duration-300">{language === "ar" ? category.descAr : category.descEn}</p>
-              </div>
-            </AnimatedSection>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6" dir={direction}>
-              {category.activities.map((activity, index) => {
-                const ActivityIcon = categoryIcons[category.id] || BookOpen;
-                return (
-                  <AnimatedSection key={index} delay={index * 0.1} direction="up">
-                    <Card className="rounded-2xl border-0 shadow-sm hover:shadow-lg transition-all h-full bg-white dark:bg-neutral-800 dark:border-neutral-700">
-                      <CardContent className="p-6 flex flex-col gap-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-green-50 dark:bg-green-900/20 flex items-center justify-center flex-shrink-0 transition-colors duration-300">
-                            <ActivityIcon className="w-5 h-5 text-green-700 dark:text-green-500 transition-colors duration-300" />
+      {!loading && activityCategories.map((category, catIndex) => {
+        const categoryActivities = activitiesByCategory[category.id] || [];
+        return (
+          <section key={category.id} id={category.id} className={`py-20 ${catIndex % 2 === 0 ? "bg-green-50 dark:bg-neutral-900" : "bg-white dark:bg-neutral-950"} transition-colors duration-300`}>
+            <div className="max-w-[1100px] mx-auto px-4 md:px-8">
+              <AnimatedSection>
+                <div className="text-center mb-12" dir={direction}>
+                  <category.icon className="w-10 h-10 text-green-700 dark:text-green-500 mx-auto mb-4 transition-colors duration-300" />
+                  <h2 className="text-3xl font-bold text-neutral-900 dark:text-white [font-family:'Almarai',Helvetica] transition-colors duration-300">{language === "ar" ? category.titleAr : category.titleEn}</h2>
+                  <p className="text-neutral-500 dark:text-neutral-400 text-base mt-4 max-w-[600px] mx-auto [font-family:'Almarai',Helvetica] transition-colors duration-300">{language === "ar" ? category.descAr : category.descEn}</p>
+                </div>
+              </AnimatedSection>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6" dir={direction}>
+                {categoryActivities.map((activity, index) => {
+                  const ActivityIcon = categoryIcons[category.id] || BookOpen;
+                  return (
+                    <AnimatedSection key={activity.id || index} delay={index * 0.1} direction="up">
+                      <Card className="rounded-2xl border-0 shadow-sm hover:shadow-lg transition-all h-full bg-white dark:bg-neutral-800 dark:border-neutral-700">
+                        <CardContent className="p-6 flex flex-col gap-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-green-50 dark:bg-green-900/20 flex items-center justify-center flex-shrink-0 transition-colors duration-300">
+                              <ActivityIcon className="w-5 h-5 text-green-700 dark:text-green-500 transition-colors duration-300" />
+                            </div>
+                            <h3 className="font-bold text-base text-neutral-900 dark:text-white [font-family:'Almarai',Helvetica] transition-colors duration-300">{language === "ar" ? activity.nameAr : activity.nameEn}</h3>
                           </div>
-                          <h3 className="font-bold text-base text-neutral-900 dark:text-white [font-family:'Almarai',Helvetica] transition-colors duration-300">{language === "ar" ? activity.nameAr : activity.nameEn}</h3>
-                        </div>
-                        <p className="text-neutral-500 dark:text-neutral-400 text-sm leading-relaxed [font-family:'Almarai',Helvetica] transition-colors duration-300">{language === "ar" ? activity.descAr : activity.descEn}</p>
-                      </CardContent>
-                    </Card>
-                  </AnimatedSection>
-                );
-              })}
+                          <p className="text-neutral-500 dark:text-neutral-400 text-sm leading-relaxed [font-family:'Almarai',Helvetica] transition-colors duration-300">{language === "ar" ? activity.descriptionAr : activity.descriptionEn}</p>
+                        </CardContent>
+                      </Card>
+                    </AnimatedSection>
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        </section>
-      ))}
+          </section>
+        );
+      })}
 
       <section className="py-20 bg-green-700 dark:bg-green-900 transition-colors duration-300">
         <div className="max-w-[800px] mx-auto px-4 md:px-8 text-center" dir={direction}>

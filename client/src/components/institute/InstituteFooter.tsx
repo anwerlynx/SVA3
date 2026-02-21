@@ -1,6 +1,7 @@
 import { Link } from "wouter";
 import { Phone, Mail, Facebook, Instagram, Twitter } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
+import { useState, useEffect } from "react";
 
 interface FooterColumn {
   title: string;
@@ -18,6 +19,22 @@ interface InstituteFooterProps {
 
 export function InstituteFooter({ instituteName, instituteNameKey, columns, accentColor, accentHoverClass }: InstituteFooterProps) {
   const { t, language, direction } = useLanguage();
+  const [socials, setSocials] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    fetch("/api/settings")
+      .then(r => r.json())
+      .then(data => {
+        const s: Record<string, string> = {};
+        if (Array.isArray(data)) {
+          data.forEach((item: any) => {
+            if (item.key?.startsWith("social_")) s[item.key] = item.value;
+          });
+        }
+        setSocials(s);
+      })
+      .catch(() => {});
+  }, []);
 
   const displayName = instituteNameKey ? t(instituteNameKey as any) : instituteName;
 
@@ -37,15 +54,22 @@ export function InstituteFooter({ instituteName, instituteNameKey, columns, acce
               {displayName} - {t("mission")}
             </p>
             <div className="flex items-center gap-4">
-              <a href="#" className={`w-10 h-10 rounded-full bg-white/10 flex items-center justify-center ${accentHoverClass} transition-colors`} data-testid="link-facebook">
-                <Facebook className="w-5 h-5" />
-              </a>
-              <a href="#" className={`w-10 h-10 rounded-full bg-white/10 flex items-center justify-center ${accentHoverClass} transition-colors`} data-testid="link-instagram">
-                <Instagram className="w-5 h-5" />
-              </a>
-              <a href="#" className={`w-10 h-10 rounded-full bg-white/10 flex items-center justify-center ${accentHoverClass} transition-colors`} data-testid="link-twitter">
-                <Twitter className="w-5 h-5" />
-              </a>
+              {[
+                { key: "social_facebook", icon: Facebook, label: "Facebook" },
+                { key: "social_instagram", icon: Instagram, label: "Instagram" },
+                { key: "social_twitter", icon: Twitter, label: "Twitter" },
+              ].map(({ key, icon: Icon, label }) => (
+                <a
+                  key={key}
+                  href={socials[key] || `https://${label.toLowerCase()}.com`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`w-10 h-10 rounded-full bg-white/10 flex items-center justify-center ${accentHoverClass} transition-colors`}
+                  data-testid={`link-${label.toLowerCase()}`}
+                >
+                  <Icon className="w-5 h-5" />
+                </a>
+              ))}
             </div>
           </div>
 

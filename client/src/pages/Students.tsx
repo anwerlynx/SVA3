@@ -11,11 +11,24 @@ import {
   GraduationCap, CheckCircle2, FileText, DollarSign, Award,
   HelpCircle, ChevronDown, ChevronUp, ArrowRight, Users, BookOpen, ClipboardList
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function Students() {
   const { language, direction } = useLanguage();
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [apiFaqs, setApiFaqs] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetch('/api/faqs')
+      .then(r => r.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          const studentFaqs = data.filter((f: any) => f.isActive && (f.category === 'Admission' || f.category === 'Financial' || f.category === 'Student Life' || f.category === 'General'));
+          setApiFaqs(studentFaqs);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const pageTitle = language === 'ar' ? 'شؤون الطلاب' : 'Student Affairs';
   const pageSubtitle = language === 'ar'
@@ -58,7 +71,7 @@ export default function Students() {
     { name: language === 'ar' ? "خصم الأشقاء" : "Sibling Discount", value: language === 'ar' ? "10% لكل شقيق إضافي" : "10% per additional sibling", criteria: language === 'ar' ? "للعائلات التي لديها طالبان أو أكثر مسجلين" : "For families with 2+ enrolled students" },
   ];
 
-  const faqs = [
+  const staticFaqs = [
     { q: language === 'ar' ? "ما هو الموعد النهائي للتقديم؟" : "What is the application deadline?", a: language === 'ar' ? "يتم قبول الطلبات من 1 يوليو إلى 30 سبتمبر من كل عام دراسي. قد يتم النظر في الطلبات المتأخرة بناءً على المقاعد المتاحة." : "Applications are accepted from July 1 to September 30 each academic year. Late applications may be considered based on available seats." },
     { q: language === 'ar' ? "هل يمكنني التحويل من جامعة أخرى؟" : "Can I transfer from another university?", a: language === 'ar' ? "نعم، يتم قبول الطلاب المحولين وفقاً لتقييم الساعات المعتمدة وتوافر المقاعد. تواصل مع مكتب القبول للتفاصيل." : "Yes, transfer students are accepted subject to credit hour evaluation and seat availability. Contact the admissions office for details." },
     { q: language === 'ar' ? "هل توجد برامج مسائية/جزئية؟" : "Are there evening/part-time programs?", a: language === 'ar' ? "نعم، نقدم برامج مسائية للمهنيين العاملين في أقسام مختارة. تواصل معنا لمعرفة الجدول الحالي." : "Yes, we offer evening programs for working professionals in select departments. Contact us for the current schedule." },
@@ -66,6 +79,13 @@ export default function Students() {
     { q: language === 'ar' ? "هل يوجد سكن طلابي؟" : "Is there a student housing facility?", a: language === 'ar' ? "لا نقدم حالياً سكناً في الحرم الجامعي، لكننا نحتفظ بقائمة بالإقامات القريبة الموصى بها." : "We do not currently offer on-campus housing, but we maintain a list of recommended nearby accommodations." },
     { q: language === 'ar' ? "كيف أتقدم بطلب للحصول على منحة دراسية؟" : "How do I apply for a scholarship?", a: language === 'ar' ? "يتم تقديم طلبات المنح الدراسية مع الطلب الرئيسي. يتم النظر في الطلاب المؤهلين تلقائياً بناءً على سجلاتهم الأكاديمية." : "Scholarship applications are submitted alongside the main application. Eligible students are automatically considered based on their academic records." },
   ];
+
+  const faqs = apiFaqs.length > 0
+    ? apiFaqs.map((f: any) => ({
+        q: language === 'ar' ? f.questionAr : (f.questionEn || f.questionAr),
+        a: language === 'ar' ? f.answerAr : (f.answerEn || f.answerAr),
+      }))
+    : staticFaqs;
 
   const quickLinks = [
     { label: language === 'ar' ? "متطلبات القبول" : "Admission Requirements", href: "#admission-requirements" },

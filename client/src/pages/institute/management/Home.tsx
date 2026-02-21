@@ -7,13 +7,34 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
-import { ArrowLeft, ArrowRight, BarChart3, Calculator, Database, Landmark, GraduationCap, Users, BookOpen, CheckCircle2, Calendar, Award, Briefcase, Globe, Target, Shield, Lightbulb } from "lucide-react";
+import { ArrowLeft, ArrowRight, BarChart3, Calculator, Database, Landmark, GraduationCap, Users, BookOpen, CheckCircle2, Calendar, Award, Briefcase, Globe, Target, Shield, Lightbulb, Loader2 } from "lucide-react";
 import { managementNavbar, managementFooter } from "@/lib/instituteConfig";
 import { PageHead } from "@/components/PageHead";
 import { useLanguage } from "@/context/LanguageContext";
+import { useState, useEffect } from "react";
 
 export default function ManagementHome() {
   const { language, direction } = useLanguage();
+  const [news, setNews] = useState([]);
+  const [newsLoading, setNewsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchNews = async () => {
+      try {
+        setNewsLoading(true);
+        const response = await fetch("/api/news?institute=management&limit=3");
+        if (response.ok) {
+          const result = await response.json();
+          setNews(result.data || []);
+        }
+      } catch (error) {
+        console.error("Error fetching news:", error);
+      } finally {
+        setNewsLoading(false);
+      }
+    };
+    fetchNews();
+  }, []);
 
   const departments = [
     { icon: Database, name: language === "ar" ? "نظم المعلومات الإدارية" : "Management Information Systems", desc: language === "ar" ? "تحليل وتصميم نظم المعلومات والبرمجيات" : "Analysis and design of information systems and software", slug: "mis", color: "bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400" },
@@ -36,12 +57,6 @@ export default function ManagementHome() {
     { icon: Target, title: language === "ar" ? "سوق العمل" : "Job Market", desc: language === "ar" ? "نسبة توظيف عالية للخريجين في قطاعات الأعمال والبنوك" : "High employment rate for graduates in business and banking sectors" },
     { icon: Shield, title: language === "ar" ? "ضمان الجودة" : "Quality Assurance", desc: language === "ar" ? "نظام متكامل لضمان جودة التعليم والاعتماد المؤسسي" : "Integrated system for education quality assurance and institutional accreditation" },
     { icon: Lightbulb, title: language === "ar" ? "ريادة الأعمال" : "Entrepreneurship", desc: language === "ar" ? "حاضنة أعمال لدعم المشاريع الناشئة وتنمية مهارات الطلاب" : "Business incubator to support startups and develop student skills" },
-  ];
-
-  const news = [
-    { id: 1, title: language === "ar" ? "تكريم الطلاب المتفوقين في قسم المحاسبة" : "Honoring Outstanding Students in the Accounting Department", date: language === "ar" ? "20 فبراير 2026" : "February 20, 2026", image: "/figmaAssets/rectangle-12.png" },
-    { id: 2, title: language === "ar" ? "ندوة حول ريادة الأعمال والابتكار" : "Seminar on Entrepreneurship and Innovation", date: language === "ar" ? "15 فبراير 2026" : "February 15, 2026", image: "/figmaAssets/rectangle-10.png" },
-    { id: 3, title: language === "ar" ? "بروتوكول تعاون مع البنك الأهلي" : "Cooperation Protocol with Al-Ahli Bank", date: language === "ar" ? "10 فبراير 2026" : "February 10, 2026", image: "/figmaAssets/rectangle-12-1.png" },
   ];
 
   const ArrowIcon = direction === "rtl" ? ArrowLeft : ArrowRight;
@@ -210,25 +225,35 @@ export default function ManagementHome() {
             </div>
           </AnimatedSection>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6" dir={direction}>
-            {news.map((item, index) => (
-              <AnimatedSection key={item.id} delay={index * 0.1} direction="up">
-                <div>
-                  <Link href="/institute/management/news">
-                    <Card className="rounded-2xl border-0 shadow-sm hover:shadow-lg transition-all cursor-pointer group overflow-hidden bg-white dark:bg-neutral-800 dark:border-neutral-700">
-                      <CardContent className="p-0">
-                        <div className="relative overflow-hidden">
-                          <img className="w-full h-[200px] object-cover group-hover:scale-105 transition-transform duration-500" alt={item.title} src={item.image} />
-                        </div>
-                        <div className="p-5 flex flex-col gap-2">
-                          <span className="text-neutral-400 dark:text-neutral-500 text-xs [font-family:'Almarai',Helvetica] flex items-center gap-1"><Calendar className="w-3 h-3" />{item.date}</span>
-                          <h3 className="font-bold text-base text-neutral-900 dark:text-white [font-family:'Almarai',Helvetica] line-clamp-2 transition-colors duration-300">{item.title}</h3>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </Link>
-                </div>
-              </AnimatedSection>
-            ))}
+            {newsLoading ? (
+              <div className="col-span-full flex items-center justify-center py-12">
+                <Loader2 className="w-8 h-8 text-green-700 dark:text-green-400 animate-spin" />
+              </div>
+            ) : news.length > 0 ? (
+              news.map((item, index) => (
+                <AnimatedSection key={item.id} delay={index * 0.1} direction="up">
+                  <div>
+                    <Link href={`/news/${item.slug}`}>
+                      <Card className="rounded-2xl border-0 shadow-sm hover:shadow-lg transition-all cursor-pointer group overflow-hidden bg-white dark:bg-neutral-800 dark:border-neutral-700">
+                        <CardContent className="p-0">
+                          <div className="relative overflow-hidden">
+                            <img className="w-full h-[200px] object-cover group-hover:scale-105 transition-transform duration-500" alt={language === "ar" ? item.titleAr : (item.titleEn || item.titleAr)} src={item.coverImage || "/figmaAssets/rectangle-16.png"} />
+                          </div>
+                          <div className="p-5 flex flex-col gap-2">
+                            <span className="text-neutral-400 dark:text-neutral-500 text-xs [font-family:'Almarai',Helvetica] flex items-center gap-1"><Calendar className="w-3 h-3" />{new Date(item.createdAt).toLocaleDateString(language === "ar" ? "ar-EG" : "en-US")}</span>
+                            <h3 className="font-bold text-base text-neutral-900 dark:text-white [font-family:'Almarai',Helvetica] line-clamp-2 transition-colors duration-300">{language === "ar" ? item.titleAr : (item.titleEn || item.titleAr)}</h3>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </Link>
+                  </div>
+                </AnimatedSection>
+              ))
+            ) : (
+              <div className="col-span-full text-center py-12">
+                <p className="text-neutral-500 dark:text-neutral-400 [font-family:'Almarai',Helvetica]">{language === "ar" ? "لا توجد أخبار متاحة" : "No news available"}</p>
+              </div>
+            )}
           </div>
         </div>
       </section>

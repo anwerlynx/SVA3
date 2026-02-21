@@ -7,6 +7,32 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 app.use((req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "SAMEORIGIN");
+  res.setHeader("X-XSS-Protection", "1; mode=block");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  next();
+});
+
+app.use((req, res, next) => {
+  if (req.path.startsWith("/api/")) {
+    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+  } else if (req.path.startsWith("/figmaAssets/") || req.path.startsWith("/gallery/")) {
+    res.setHeader("Cache-Control", "public, max-age=86400");
+  } else {
+    const originalSend = res.send;
+    res.send = function (body) {
+      const contentType = res.getHeader("content-type");
+      if (typeof contentType === "string" && contentType.includes("text/html")) {
+        res.setHeader("Cache-Control", "no-cache");
+      }
+      return originalSend.call(this, body);
+    };
+  }
+  next();
+});
+
+app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
   let capturedJsonResponse: Record<string, any> | undefined = undefined;
@@ -43,8 +69,9 @@ app.use((req, res, next) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
 
-    res.status(status).json({ message });
-    throw err;
+    console.error(err);
+    const responseMessage = app.get("env") === "production" ? "Internal Server Error" : message;
+    res.status(status).json({ message: responseMessage });
   });
 
   // importantly only setup vite in development and after

@@ -1,9 +1,26 @@
 import { Link } from "wouter";
 import { MapPin, Phone, Mail, Facebook, Instagram, Twitter, Youtube } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
+import { useState, useEffect } from "react";
 
 export function Footer() {
   const { t, direction, language } = useLanguage();
+  const [socials, setSocials] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    fetch("/api/settings")
+      .then(r => r.json())
+      .then(data => {
+        const s: Record<string, string> = {};
+        if (Array.isArray(data)) {
+          data.forEach((item: any) => {
+            if (item.key?.startsWith("social_")) s[item.key] = item.value;
+          });
+        }
+        setSocials(s);
+      })
+      .catch(() => {});
+  }, []);
 
   const col1Links = [
     { label: t("about"), href: "/about" },
@@ -53,18 +70,23 @@ export function Footer() {
                 : "A leading educational institution setting standards of academic excellence and shaping future leaders"}
             </p>
             <div className="flex items-center gap-3">
-              <a href="#" aria-label="Facebook" className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center hover:bg-green-700 transition-colors">
-                <Facebook className="w-4 h-4" />
-              </a>
-              <a href="#" aria-label="Instagram" className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center hover:bg-green-700 transition-colors">
-                <Instagram className="w-4 h-4" />
-              </a>
-              <a href="#" aria-label="Twitter" className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center hover:bg-green-700 transition-colors">
-                <Twitter className="w-4 h-4" />
-              </a>
-              <a href="#" aria-label="Youtube" className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center hover:bg-green-700 transition-colors">
-                <Youtube className="w-4 h-4" />
-              </a>
+              {[
+                { key: "social_facebook", icon: Facebook, label: "Facebook" },
+                { key: "social_instagram", icon: Instagram, label: "Instagram" },
+                { key: "social_twitter", icon: Twitter, label: "Twitter" },
+                { key: "social_youtube", icon: Youtube, label: "Youtube" },
+              ].map(({ key, icon: Icon, label }) => (
+                <a
+                  key={key}
+                  href={socials[key] || `https://${label.toLowerCase()}.com`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={label}
+                  className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center hover:bg-green-700 transition-colors"
+                >
+                  <Icon className="w-4 h-4" />
+                </a>
+              ))}
             </div>
           </div>
 

@@ -1,8 +1,9 @@
 import { randomUUID } from "crypto";
+import bcrypt from "bcryptjs";
 import type {
   User, InsertUser, AdminUser, Department, Faculty, News, Event,
   Page, Media, LibraryResource, Research, Announcement, Setting,
-  Activity, Course, AuditLog, ContactMessage, NewsletterSubscriber
+  Activity, Course, AuditLog, ContactMessage, NewsletterSubscriber, FAQ
 } from "@shared/schema";
 
 // ─── Interfaces ───────────────────────────────────────────────────────────────
@@ -87,7 +88,7 @@ export interface IStorage {
   upsertSetting(key: string, value: any, group?: string): Promise<Setting>;
 
   // Activities
-  getActivities(opts: { isActive?: boolean }): Promise<Activity[]>;
+  getActivities(opts: { isActive?: boolean; institute?: string }): Promise<Activity[]>;
   createActivity(data: Partial<Activity>): Promise<Activity>;
   updateActivity(id: string, data: Partial<Activity>): Promise<Activity>;
   deleteActivity(id: string): Promise<void>;
@@ -106,10 +107,17 @@ export interface IStorage {
   getContactMessages(opts: { institute?: string; isRead?: boolean }): Promise<ContactMessage[]>;
   createContactMessage(data: Partial<ContactMessage>): Promise<ContactMessage>;
   markContactMessageRead(id: string): Promise<ContactMessage>;
+  deleteContactMessage(id: string): Promise<void>;
 
   // Newsletter
   createNewsletterSubscriber(email: string): Promise<NewsletterSubscriber>;
   getNewsletterSubscribers(): Promise<NewsletterSubscriber[]>;
+
+  // FAQs
+  getFaqs(opts: { category?: string }): Promise<FAQ[]>;
+  createFaq(data: Partial<FAQ>): Promise<FAQ>;
+  updateFaq(id: string, data: Partial<FAQ>): Promise<FAQ>;
+  deleteFaq(id: string): Promise<void>;
 }
 
 // ─── In-Memory Storage (dev mode — replace with DB in production) ─────────────
@@ -143,7 +151,7 @@ export class MemStorage implements IStorage {
     const adminId = randomUUID();
     this.adminUsers.set(adminId, {
       id: adminId, name: "Super Admin", email: "admin@sva.edu.eg",
-      passwordHash: "admin123", role: "super_admin", isActive: true,
+      passwordHash: bcrypt.hashSync("admin123", 10), role: "super_admin", isActive: true,
       lastLoginAt: null, avatarUrl: null, createdAt: now, updatedAt: now, deletedAt: null
     });
 
@@ -219,6 +227,8 @@ export class MemStorage implements IStorage {
       totalDepartments: this.departmentsMap.size,
       totalNews: this.newsMap.size,
       publishedNews: Array.from(this.newsMap.values()).filter(n => n.status === "published").length,
+      totalEvents: this.eventsMap.size,
+      totalContacts: this.contactMessagesMap.size,
       totalMedia: this.mediaMap.size,
       totalLibrary: this.libraryMap.size,
       totalUsers: this.adminUsers.size,
@@ -494,9 +504,10 @@ export class MemStorage implements IStorage {
   }
 
   // ── Activities ──────────────────────────────────────────────────────────────
-  async getActivities({ isActive }: any) {
+  async getActivities({ isActive, institute }: any) {
     let data = Array.from(this.activitiesMap.values()).filter(a => !a.deletedAt);
     if (isActive !== undefined) data = data.filter(a => a.isActive === isActive);
+    if (institute) data = data.filter(a => a.institute === institute);
     return data;
   }
   async createActivity(data: Partial<Activity>): Promise<Activity> {
@@ -574,6 +585,10 @@ export class MemStorage implements IStorage {
     return updated;
   }
 
+  async deleteContactMessage(id: string): Promise<void> {
+    this.contactMessagesMap.delete(id);
+  }
+
   async createNewsletterSubscriber(email: string): Promise<NewsletterSubscriber> {
     if (this.newsletterMap.has(email)) throw new Error("Already subscribed");
     const id = randomUUID();
@@ -585,6 +600,22 @@ export class MemStorage implements IStorage {
   async getNewsletterSubscribers(): Promise<NewsletterSubscriber[]> {
     return Array.from(this.newsletterMap.values());
   }
+
+  async getFaqs({ category }: { category?: string }): Promise<FAQ[]> {
+    return [];
+  }
+  async createFaq(data: Partial<FAQ>): Promise<FAQ> {
+    const id = randomUUID();
+    const now = new Date();
+    const faq = { id, ...data, createdAt: now, updatedAt: now } as FAQ;
+    return faq;
+  }
+  async updateFaq(id: string, data: Partial<FAQ>): Promise<FAQ> {
+    throw new Error("Not found");
+  }
+  async deleteFaq(id: string): Promise<void> {}
 }
 
-export const storage = new MemStorage();
+import { DatabaseStorage } from "./dbStorage";
+
+export const storage: IStorage = new DatabaseStorage();

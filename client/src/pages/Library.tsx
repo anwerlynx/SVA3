@@ -9,14 +9,60 @@ import { useLanguage } from "@/context/LanguageContext";
 import { Link } from "wouter";
 import {
   BookOpen, Database, Globe, Download, Search, ExternalLink,
-  Clock, BookMarked, Wifi, BookCopy, ArrowRight
+  Clock, BookMarked, Wifi, BookCopy, ArrowRight, Loader2
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+
+interface LibraryResource {
+  id: string;
+  titleAr: string;
+  titleEn: string;
+  authorAr?: string;
+  authorEn?: string;
+  descriptionAr?: string;
+  descriptionEn?: string;
+  category?: string;
+  type: string;
+  isbn?: string;
+  publishYear?: number;
+  coverImage?: string;
+  fileUrl?: string;
+  externalUrl?: string;
+  institute?: string;
+  isAvailable: boolean;
+  downloadCount: number;
+  createdAt: string;
+}
 
 export default function Library() {
   const { language, direction } = useLanguage();
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
+  const [resources, setResources] = useState<LibraryResource[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchResources = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch("/api/library");
+        if (!response.ok) {
+          throw new Error("Failed to fetch library resources");
+        }
+        const data = await response.json();
+        setResources(data);
+        setError(null);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "An error occurred");
+        setResources([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchResources();
+  }, []);
 
   const pageTitle = language === 'ar' ? 'المكتبة' : 'Library';
   const pageSubtitle = language === 'ar'
@@ -30,25 +76,54 @@ export default function Library() {
     { icon: Database, value: 15, suffix: "+", label: language === 'ar' ? "قاعدة بيانات بحثية" : "Research Databases" },
   ];
 
+  // Map API type values to display categories
+  const typeToCategory = (type: string) => {
+    const map: Record<string, string> = {
+      "book": "Books",
+      "digital": "Digital",
+      "journal": "Journals",
+      "database": "Databases",
+    };
+    return map[type.toLowerCase()] || type;
+  };
+
+  // Get unique categories from API data
+  const allCategories = resources.length > 0
+    ? Array.from(new Set(resources.map(r => typeToCategory(r.type))))
+    : ["Books", "Digital", "Journals", "Databases"];
+
   const categories = [
     { id: "All", label: language === 'ar' ? "الكل" : "All" },
-    { id: "Books", label: language === 'ar' ? "كتب" : "Books" },
-    { id: "Digital", label: language === 'ar' ? "رقمية" : "Digital" },
-    { id: "Journals", label: language === 'ar' ? "مجلات" : "Journals" },
-    { id: "Databases", label: language === 'ar' ? "قواعد بيانات" : "Databases" },
-    { id: "E-Books", label: language === 'ar' ? "كتب إلكترونية" : "E-Books" },
+    ...allCategories.map(cat => ({
+      id: cat,
+      label: language === 'ar'
+        ? (cat === 'Books' ? 'كتب' : cat === 'Digital' ? 'رقمية' : cat === 'Journals' ? 'مجلات' : 'قواعد بيانات')
+        : cat
+    }))
   ];
 
-  const resources = [
-    { id: 1, title: language === 'ar' ? "أساسيات الهندسة" : "Engineering Fundamentals", author: "Smith & Johnson", type: "Books", institute: language === 'ar' ? "الهندسة" : "Engineering", year: 2024, available: true, downloads: 342 },
-    { id: 2, title: language === 'ar' ? "مبادئ إدارة الأعمال" : "Business Management Principles", author: "Peter Drucker", type: "Books", institute: language === 'ar' ? "الإدارة" : "Management", year: 2023, available: true, downloads: 218 },
-    { id: 3, title: language === 'ar' ? "مكتبة IEEE الرقمية" : "IEEE Xplore Digital Library", author: "IEEE", type: "Databases", institute: language === 'ar' ? "الهندسة" : "Engineering", year: 2025, available: true, downloads: 0 },
-    { id: 4, title: language === 'ar' ? "مجلات JSTOR الأكاديمية" : "JSTOR Academic Journals", author: "JSTOR", type: "Databases", institute: language === 'ar' ? "الإدارة" : "Management", year: 2025, available: true, downloads: 0 },
-    { id: 5, title: language === 'ar' ? "تحليل وتصميم الإنشاءات" : "Structural Analysis & Design", author: "R.C. Hibbeler", type: "E-Books", institute: language === 'ar' ? "الهندسة" : "Engineering", year: 2022, available: true, downloads: 567 },
-    { id: 6, title: language === 'ar' ? "معايير المحاسبة المالية" : "Financial Accounting Standards", author: "IASB", type: "Digital", institute: language === 'ar' ? "الإدارة" : "Management", year: 2024, available: false, downloads: 134 },
-    { id: 7, title: language === 'ar' ? "أوتوكاد للمهندسين" : "AutoCAD for Engineers", author: "Autodesk Press", type: "E-Books", institute: language === 'ar' ? "الهندسة" : "Engineering", year: 2023, available: true, downloads: 445 },
-    { id: 8, title: language === 'ar' ? "المجلة الدولية للهندسة" : "International Journal of Engineering", author: "Various", type: "Journals", institute: language === 'ar' ? "الهندسة" : "Engineering", year: 2025, available: true, downloads: 89 },
-  ];
+  // Map institute to bilingual display
+  const getInstituteDisplay = (institute?: string) => {
+    if (!institute) return '';
+    if (institute === 'engineering') {
+      return language === 'ar' ? 'الهندسة' : 'Engineering';
+    } else if (institute === 'management') {
+      return language === 'ar' ? 'الإدارة' : 'Management';
+    }
+    return institute;
+  };
+
+  // Get display title with bilingual fallback
+  const getDisplayTitle = (resource: LibraryResource) => {
+    return language === 'ar' ? resource.titleAr : (resource.titleEn || resource.titleAr);
+  };
+
+  // Get display author with bilingual fallback
+  const getDisplayAuthor = (resource: LibraryResource) => {
+    return language === 'ar'
+      ? (resource.authorAr || resource.authorEn || '')
+      : (resource.authorEn || resource.authorAr || '');
+  };
 
   const typeIcon: Record<string, React.ElementType> = {
     Books: BookOpen,
@@ -67,8 +142,10 @@ export default function Library() {
   };
 
   const filtered = resources.filter(r => {
-    const matchCat = activeCategory === "All" || r.type === activeCategory;
-    const matchSearch = !search || r.title.toLowerCase().includes(search.toLowerCase());
+    const displayCategory = typeToCategory(r.type);
+    const matchCat = activeCategory === "All" || displayCategory === activeCategory;
+    const title = getDisplayTitle(r);
+    const matchSearch = !search || title.toLowerCase().includes(search.toLowerCase());
     return matchCat && matchSearch;
   });
 
@@ -174,57 +251,64 @@ export default function Library() {
             ))}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-            {filtered.map((resource, i) => {
-              const Icon = typeIcon[resource.type] || BookOpen;
-              const colors = typeColor[resource.type] || typeColor.Books;
-              return (
-                <AnimatedSection key={resource.id} delay={i * 0.05}>
-                  <Card className="rounded-2xl border-0 shadow-sm hover:shadow-lg transition-all h-full bg-white dark:bg-neutral-900 group">
-                    <CardContent className="p-5">
-                      <div className="flex items-start justify-between mb-4">
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${colors.bg}`}>
-                          <Icon className={`w-5 h-5 ${colors.icon}`} />
-                        </div>
-                        <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
-                          resource.available
-                            ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
-                            : "bg-gray-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400"
-                        } [font-family:'Almarai',Helvetica]`}>
-                          {resource.available
-                            ? (language === 'ar' ? 'متاح' : 'Available')
-                            : (language === 'ar' ? 'غير متاح' : 'Unavailable')}
-                        </span>
-                      </div>
-                      <h3 className="text-sm font-bold text-neutral-900 dark:text-white mb-1 line-clamp-2 group-hover:text-green-700 dark:group-hover:text-green-400 transition-colors [font-family:'Almarai',Helvetica]">
-                        {resource.title}
-                      </h3>
-                      <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-3 [font-family:'Almarai',Helvetica]">
-                        {resource.author} · {resource.year} · {resource.institute}
-                      </p>
-                      <div className="flex items-center justify-between">
-                        <span className={`text-xs px-2 py-0.5 rounded-md font-medium ${colors.badge} [font-family:'Almarai',Helvetica]`}>
-                          {resource.type}
-                        </span>
-                        {resource.downloads > 0 && (
-                          <span className="text-xs text-neutral-400 flex items-center gap-1">
-                            <Download className="w-3 h-3" />{resource.downloads}
+          {loading ? (
+            <div className="w-full flex items-center justify-center py-20">
+              <Loader2 className="w-8 h-8 animate-spin text-green-600" />
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+              {filtered.map((resource, i) => {
+                const displayCategory = typeToCategory(resource.type);
+                const Icon = typeIcon[displayCategory] || BookOpen;
+                const colors = typeColor[displayCategory] || typeColor.Books;
+                return (
+                  <AnimatedSection key={resource.id} delay={i * 0.05}>
+                    <Card className="rounded-2xl border-0 shadow-sm hover:shadow-lg transition-all h-full bg-white dark:bg-neutral-900 group">
+                      <CardContent className="p-5">
+                        <div className="flex items-start justify-between mb-4">
+                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${colors.bg}`}>
+                            <Icon className={`w-5 h-5 ${colors.icon}`} />
+                          </div>
+                          <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
+                            resource.isAvailable
+                              ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
+                              : "bg-gray-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400"
+                          } [font-family:'Almarai',Helvetica]`}>
+                            {resource.isAvailable
+                              ? (language === 'ar' ? 'متاح' : 'Available')
+                              : (language === 'ar' ? 'غير متاح' : 'Unavailable')}
                           </span>
-                        )}
-                      </div>
-                      <button className="mt-4 w-full py-2.5 bg-gray-50 dark:bg-neutral-800 hover:bg-green-50 dark:hover:bg-green-900/20 text-neutral-600 dark:text-neutral-300 hover:text-green-700 dark:hover:text-green-400 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 [font-family:'Almarai',Helvetica]">
-                        {resource.type === "Databases"
-                          ? <><ExternalLink className="w-3.5 h-3.5" /> {language === 'ar' ? 'الوصول للقاعدة' : 'Access Database'}</>
-                          : <><Download className="w-3.5 h-3.5" /> {language === 'ar' ? 'تحميل' : 'Download'}</>}
-                      </button>
-                    </CardContent>
-                  </Card>
-                </AnimatedSection>
-              );
-            })}
-          </div>
+                        </div>
+                        <h3 className="text-sm font-bold text-neutral-900 dark:text-white mb-1 line-clamp-2 group-hover:text-green-700 dark:group-hover:text-green-400 transition-colors [font-family:'Almarai',Helvetica]">
+                          {getDisplayTitle(resource)}
+                        </h3>
+                        <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-3 [font-family:'Almarai',Helvetica]">
+                          {getDisplayAuthor(resource)} · {resource.publishYear} · {getInstituteDisplay(resource.institute)}
+                        </p>
+                        <div className="flex items-center justify-between">
+                          <span className={`text-xs px-2 py-0.5 rounded-md font-medium ${colors.badge} [font-family:'Almarai',Helvetica]`}>
+                            {displayCategory}
+                          </span>
+                          {resource.downloadCount > 0 && (
+                            <span className="text-xs text-neutral-400 flex items-center gap-1">
+                              <Download className="w-3 h-3" />{resource.downloadCount}
+                            </span>
+                          )}
+                        </div>
+                        <button className="mt-4 w-full py-2.5 bg-gray-50 dark:bg-neutral-800 hover:bg-green-50 dark:hover:bg-green-900/20 text-neutral-600 dark:text-neutral-300 hover:text-green-700 dark:hover:text-green-400 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 [font-family:'Almarai',Helvetica]">
+                          {displayCategory === "Databases"
+                            ? <><ExternalLink className="w-3.5 h-3.5" /> {language === 'ar' ? 'الوصول للقاعدة' : 'Access Database'}</>
+                            : <><Download className="w-3.5 h-3.5" /> {language === 'ar' ? 'تحميل' : 'Download'}</>}
+                        </button>
+                      </CardContent>
+                    </Card>
+                  </AnimatedSection>
+                );
+              })}
+            </div>
+          )}
 
-          {filtered.length === 0 && (
+          {filtered.length === 0 && !loading && (
             <div className="text-center py-20 text-neutral-400">
               <BookOpen className="w-12 h-12 mx-auto mb-3 opacity-30" />
               <p className="[font-family:'Almarai',Helvetica]">

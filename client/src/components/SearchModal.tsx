@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { Link } from "wouter";
 import { AnimatePresence, motion } from "framer-motion";
-import { Search, X } from "lucide-react";
+import { Search, X, Loader2 } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 
 interface SearchPage {
@@ -9,6 +9,15 @@ interface SearchPage {
   labelEn: string;
   href: string;
   category: "portal" | "management" | "engineering";
+}
+
+interface ApiResults {
+  news: Array<{ titleAr: string; titleEn: string | null; slug: string; category?: string; coverImage?: string }>;
+  faculty: Array<{ nameAr: string; nameEn: string; institute: string | null; departmentId?: string }>;
+  departments: Array<{ nameAr: string; nameEn: string; institute: string; slug?: string }>;
+  events: Array<{ titleAr: string; titleEn: string | null; slug: string; startDate?: string; location?: string }>;
+  research: Array<{ titleAr: string; titleEn: string | null; journal?: string; publishedYear?: number }>;
+  library: Array<{ titleAr: string; titleEn: string | null; authorAr?: string; authorEn?: string; type?: string }>;
 }
 
 const pages: SearchPage[] = [
@@ -88,12 +97,16 @@ interface SearchModalProps {
 
 export function SearchModal({ isOpen, onClose }: SearchModalProps) {
   const [query, setQuery] = useState("");
+  const emptyResults: ApiResults = { news: [], faculty: [], departments: [], events: [], research: [], library: [] };
+  const [apiResults, setApiResults] = useState<ApiResults>(emptyResults);
+  const [apiLoading, setApiLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const { language, direction } = useLanguage();
 
   useEffect(() => {
     if (isOpen) {
       setQuery("");
+      setApiResults(emptyResults);
       setTimeout(() => inputRef.current?.focus(), 100);
     }
   }, [isOpen]);
@@ -105,6 +118,34 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onClose]);
+
+  useEffect(() => {
+    const q = query.trim();
+    if (q.length < 2) {
+      setApiResults(emptyResults);
+      setApiLoading(false);
+      return;
+    }
+
+    setApiLoading(true);
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/search?q=${encodeURIComponent(q)}&limit=5`);
+        if (res.ok) {
+          const data = await res.json();
+          setApiResults(data);
+        } else {
+          setApiResults(emptyResults);
+        }
+      } catch {
+        setApiResults(emptyResults);
+      } finally {
+        setApiLoading(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [query]);
 
   const filtered = useMemo(() => {
     const q = query.toLowerCase().trim();
@@ -124,6 +165,14 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
     }
     return groups;
   }, [filtered]);
+
+  const hasApiResults = apiResults.news.length > 0 || apiResults.faculty.length > 0 || apiResults.departments.length > 0 || apiResults.events.length > 0 || apiResults.research.length > 0 || apiResults.library.length > 0;
+  const hasPageResults = Object.keys(grouped).length > 0;
+  const instituteLabels: Record<string, { ar: string; en: string }> = {
+    engineering: { ar: "الهندسة", en: "Engineering" },
+    management: { ar: "الإدارة", en: "Management" },
+    both: { ar: "الكل", en: "Both" },
+  };
 
   return (
     <AnimatePresence>
@@ -168,7 +217,7 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
                 <Search className={`absolute ${direction === "rtl" ? "right-5" : "left-5"} top-1/2 -translate-y-1/2 w-6 h-6 text-green-700`} />
               </div>
 
-              {Object.keys(grouped).length === 0 && (
+              {!hasPageResults && !hasApiResults && !apiLoading && (
                 <p className="text-center text-neutral-500 dark:text-neutral-400 text-lg [font-family:'Almarai',Helvetica] py-12">
                   {language === "ar" ? "لا توجد نتائج" : "No results found"}
                 </p>
@@ -194,6 +243,178 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
                     </div>
                   </div>
                 ) : null
+              )}
+
+              {apiLoading && query.trim().length >= 2 && (
+                <div className="flex items-center justify-center gap-2 py-6 text-neutral-500 dark:text-neutral-400">
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <span className="text-sm [font-family:'Almarai',Helvetica]">
+                    {language === "ar" ? "جاري البحث في المحتوى..." : "Searching content..."}
+                  </span>
+                </div>
+              )}
+
+              {hasApiResults && (
+                <div className="mt-4">
+                  <h3 className="text-sm font-bold text-neutral-600 dark:text-neutral-300 uppercase tracking-wider mb-4 [font-family:'Almarai',Helvetica] border-t border-neutral-200 dark:border-neutral-800 pt-6">
+                    {language === "ar" ? "المحتوى" : "Content Results"}
+                  </h3>
+
+                  {apiResults.news.length > 0 && (
+                    <div className="mb-6">
+                      <h4 className="text-xs font-bold text-green-600 dark:text-green-400 uppercase tracking-wider mb-2 [font-family:'Almarai',Helvetica]">
+                        {language === "ar" ? "الأخبار" : "News"}
+                      </h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {apiResults.news.map((item) => (
+                          <Link key={item.slug} href={`/news/${item.slug}`}>
+                            <span
+                              onClick={onClose}
+                              className="flex items-center gap-2 px-4 py-3 rounded-xl text-base font-medium text-neutral-700 dark:text-neutral-200 hover:bg-green-50 dark:hover:bg-green-900/20 hover:text-green-700 dark:hover:text-green-400 transition-colors cursor-pointer [font-family:'Almarai',Helvetica]"
+                            >
+                              <span className="shrink-0 px-2 py-0.5 text-[10px] font-bold rounded-full bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400">
+                                {language === "ar" ? "خبر" : "News"}
+                              </span>
+                              <span className="truncate">{language === "ar" ? item.titleAr : (item.titleEn || item.titleAr)}</span>
+                            </span>
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {apiResults.faculty.length > 0 && (
+                    <div className="mb-6">
+                      <h4 className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-2 [font-family:'Almarai',Helvetica]">
+                        {language === "ar" ? "أعضاء هيئة التدريس" : "Faculty"}
+                      </h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {apiResults.faculty.map((item, idx) => (
+                          <div
+                            key={idx}
+                            className="flex items-center gap-2 px-4 py-3 rounded-xl text-base font-medium text-neutral-700 dark:text-neutral-200 [font-family:'Almarai',Helvetica]"
+                          >
+                            <span className="shrink-0 px-2 py-0.5 text-[10px] font-bold rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400">
+                              {language === "ar" ? "عضو" : "Faculty"}
+                            </span>
+                            <span className="truncate">{language === "ar" ? item.nameAr : item.nameEn}</span>
+                            {item.departmentName && (
+                              <span className="shrink-0 text-xs text-neutral-400 dark:text-neutral-500">
+                                — {item.departmentName}
+                              </span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {apiResults.departments.length > 0 && (
+                    <div className="mb-6">
+                      <h4 className="text-xs font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider mb-2 [font-family:'Almarai',Helvetica]">
+                        {language === "ar" ? "الأقسام" : "Departments"}
+                      </h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {apiResults.departments.map((item, idx) => (
+                          <Link key={idx} href="/academic">
+                            <span
+                              onClick={onClose}
+                              className="flex items-center gap-2 px-4 py-3 rounded-xl text-base font-medium text-neutral-700 dark:text-neutral-200 hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:text-purple-700 dark:hover:text-purple-400 transition-colors cursor-pointer [font-family:'Almarai',Helvetica]"
+                            >
+                              <span className="shrink-0 px-2 py-0.5 text-[10px] font-bold rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-400">
+                                {language === "ar" ? "قسم" : "Dept"}
+                              </span>
+                              <span className="truncate">{language === "ar" ? item.nameAr : item.nameEn}</span>
+                              {item.institute && (
+                                <span className="shrink-0 text-xs text-neutral-400 dark:text-neutral-500">
+                                  — {language === "ar" ? (instituteLabels[item.institute]?.ar || item.institute) : (instituteLabels[item.institute]?.en || item.institute)}
+                                </span>
+                              )}
+                            </span>
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {apiResults.events.length > 0 && (
+                    <div className="mb-6">
+                      <h4 className="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider mb-2 [font-family:'Almarai',Helvetica]">
+                        {language === "ar" ? "الفعاليات" : "Events"}
+                      </h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {apiResults.events.map((item, idx) => (
+                          <div
+                            key={idx}
+                            className="flex items-center gap-2 px-4 py-3 rounded-xl text-base font-medium text-neutral-700 dark:text-neutral-200 [font-family:'Almarai',Helvetica]"
+                          >
+                            <span className="shrink-0 px-2 py-0.5 text-[10px] font-bold rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400">
+                              {language === "ar" ? "فعالية" : "Event"}
+                            </span>
+                            <span className="truncate">{language === "ar" ? item.titleAr : (item.titleEn || item.titleAr)}</span>
+                            {item.location && (
+                              <span className="shrink-0 text-xs text-neutral-400 dark:text-neutral-500">
+                                — {item.location}
+                              </span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {apiResults.research.length > 0 && (
+                    <div className="mb-6">
+                      <h4 className="text-xs font-bold text-teal-600 dark:text-teal-400 uppercase tracking-wider mb-2 [font-family:'Almarai',Helvetica]">
+                        {language === "ar" ? "البحث العلمي" : "Research"}
+                      </h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {apiResults.research.map((item, idx) => (
+                          <div
+                            key={idx}
+                            className="flex items-center gap-2 px-4 py-3 rounded-xl text-base font-medium text-neutral-700 dark:text-neutral-200 [font-family:'Almarai',Helvetica]"
+                          >
+                            <span className="shrink-0 px-2 py-0.5 text-[10px] font-bold rounded-full bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-400">
+                              {language === "ar" ? "بحث" : "Research"}
+                            </span>
+                            <span className="truncate">{language === "ar" ? item.titleAr : (item.titleEn || item.titleAr)}</span>
+                            {item.journal && (
+                              <span className="shrink-0 text-xs text-neutral-400 dark:text-neutral-500">
+                                — {item.journal}
+                              </span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {apiResults.library.length > 0 && (
+                    <div className="mb-6">
+                      <h4 className="text-xs font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wider mb-2 [font-family:'Almarai',Helvetica]">
+                        {language === "ar" ? "المكتبة" : "Library"}
+                      </h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {apiResults.library.map((item, idx) => (
+                          <div
+                            key={idx}
+                            className="flex items-center gap-2 px-4 py-3 rounded-xl text-base font-medium text-neutral-700 dark:text-neutral-200 [font-family:'Almarai',Helvetica]"
+                          >
+                            <span className="shrink-0 px-2 py-0.5 text-[10px] font-bold rounded-full bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-400">
+                              {language === "ar" ? "كتاب" : item.type || "Book"}
+                            </span>
+                            <span className="truncate">{language === "ar" ? item.titleAr : (item.titleEn || item.titleAr)}</span>
+                            {(item.authorEn || item.authorAr) && (
+                              <span className="shrink-0 text-xs text-neutral-400 dark:text-neutral-500">
+                                — {language === "ar" ? (item.authorAr || item.authorEn) : (item.authorEn || item.authorAr)}
+                              </span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           </motion.div>

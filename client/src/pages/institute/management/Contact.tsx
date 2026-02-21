@@ -9,9 +9,11 @@ import { MapPin, Phone, Mail, Clock, CheckCircle2, Loader2 } from "lucide-react"
 import { managementNavbar, managementFooter } from "@/lib/instituteConfig";
 import { PageHead } from "@/components/PageHead";
 import { useLanguage } from "@/context/LanguageContext";
+import { Breadcrumb } from "@/components/Breadcrumb";
 
 export default function ManagementContact() {
   const { language, direction } = useLanguage();
+  const pageTitle = language === "ar" ? "تواصل معنا" : "Contact Us";
   const [form, setForm] = useState({ name: "", email: "", subject: "", message: "" });
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -51,6 +53,16 @@ export default function ManagementContact() {
       <PageHead title={language === "ar" ? "تواصل معنا - المعهد العالي للإدارة" : "Contact Us - Higher Institute of Management"} description={language === "ar" ? "معلومات التواصل مع المعهد العالي للإدارة والمالية ونظم المعلومات" : "Contact information for the Higher Institute of Management, Finance and Information Systems"} />
       <InstituteNavbar {...managementNavbar} />
       <InstituteHero title={language === "ar" ? "تواصل معنا" : "Contact Us"} subtitle={language === "ar" ? "نسعد بتواصلك معنا" : "We are happy to hear from you"} image="/figmaAssets/rectangle-16.png" overlayColor="from-green-900/60 to-green-900/80" />
+
+      <div className="max-w-[1200px] mx-auto px-4 md:px-8 pt-6">
+        <Breadcrumb
+          items={[
+            { label: language === 'ar' ? 'الرئيسية' : 'Home', href: '/' },
+            { label: language === 'ar' ? 'معهد الإدارة' : 'Management Institute', href: '/institute/management' },
+            { label: pageTitle },
+          ]}
+        />
+      </div>
 
       <section className="py-20 md:py-28 bg-white dark:bg-neutral-950 transition-colors duration-300">
         <div className="max-w-[1000px] mx-auto px-4 md:px-8">

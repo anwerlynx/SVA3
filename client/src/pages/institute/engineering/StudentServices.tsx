@@ -6,6 +6,7 @@ import { AnimatedSection } from "@/components/AnimatedSection";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageHead } from "@/components/PageHead";
 import { useLanguage } from "@/context/LanguageContext";
+import { Breadcrumb } from "@/components/Breadcrumb";
 import {
   ClipboardList, Briefcase, UserCog, CalendarDays,
   Trophy, MessageSquareWarning, FileText, Clock,
@@ -77,12 +78,23 @@ const services = [
 
 export default function StudentServices() {
   const { language } = useLanguage();
+  const pageTitle = language === "ar" ? "خدمات الطلاب" : "Student Services";
 
   return (
     <div className="bg-white dark:bg-neutral-950 overflow-hidden w-full transition-colors duration-300">
       <PageHead title={language === "ar" ? "خدمات الطلاب - المعهد العالي للهندسة" : "Student Services - Higher Institute of Engineering"} description={language === "ar" ? "خدمات الطلاب في المعهد العالي للهندسة والتكنولوجيا" : "Student services at the Higher Institute of Engineering & Technology"} />
       <InstituteNavbar {...engineeringNavbar} />
       <InstituteHero title={language === "ar" ? "خدمات الطلاب" : "Student Services"} subtitle={language === "ar" ? "بوابة الخدمات الطلابية بالمعهد العالي للهندسة" : "Student services portal at the Higher Institute of Engineering"} image="/figmaAssets/rectangle-17.png" overlayColor="from-blue-900/60 to-blue-900/80" />
+
+      <div className="max-w-[1200px] mx-auto px-4 md:px-8 pt-6">
+        <Breadcrumb
+          items={[
+            { label: language === 'ar' ? 'الرئيسية' : 'Home', href: '/' },
+            { label: language === 'ar' ? 'معهد الهندسة' : 'Engineering Institute', href: '/institute/engineering' },
+            { label: pageTitle },
+          ]}
+        />
+      </div>
 
       <section className="py-20 md:py-28 bg-white dark:bg-neutral-950 transition-colors duration-300">
         <div className="max-w-[1100px] mx-auto px-4 md:px-8">

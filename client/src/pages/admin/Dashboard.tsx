@@ -2,10 +2,11 @@ import { AdminLayout } from "./AdminLayout";
 import { useAdminTheme } from "@/context/AdminThemeContext";
 import { useAdminAuth } from "@/context/AdminAuthContext";
 import { motion } from "framer-motion";
+import { useState, useEffect } from "react";
 import {
     Users, Newspaper, GraduationCap, Eye, TrendingUp, TrendingDown,
     ArrowUpRight, Activity, FileText, Image, Clock, CheckCircle2,
-    AlertCircle, BarChart3, Globe, Plus
+    AlertCircle, BarChart3, Globe, Plus, Calendar, Mail, Building2
 } from "lucide-react";
 import { Link } from "wouter";
 
@@ -14,6 +15,8 @@ const colorMap: Record<string, string> = {
     emerald: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/20",
     violet: "bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-200 dark:border-violet-500/20",
     amber: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-500/20",
+    rose: "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-500/20",
+    cyan: "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-200 dark:border-cyan-500/20",
 };
 
 const priorityColor: Record<string, string> = {
@@ -22,15 +25,60 @@ const priorityColor: Record<string, string> = {
     low: "bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400",
 };
 
+interface DashboardStats {
+    totalFaculty: number;
+    totalDepartments: number;
+    totalNews: number;
+    totalEvents: number;
+    totalContacts: number;
+}
+
 export default function AdminDashboard() {
     const { t, lang } = useAdminTheme();
-    const { admin } = useAdminAuth();
+    const { admin, token } = useAdminAuth();
+    const [loading, setLoading] = useState(true);
+    const [stats, setStats] = useState<DashboardStats | null>(null);
+    const [error, setError] = useState<string | null>(null);
 
-    const stats = [
-        { labelKey: "total_visitors", value: "24,521", change: "+12.5%", up: true, icon: Eye, color: "indigo" },
-        { labelKey: "faculty_members", value: "87", change: "+3", up: true, icon: Users, color: "emerald" },
-        { labelKey: "published_articles", value: "142", change: "+8", up: true, icon: Newspaper, color: "violet" },
-        { labelKey: "active_students", value: "3,840", change: "-2.1%", up: false, icon: GraduationCap, color: "amber" },
+    useEffect(() => {
+        const fetchStats = async () => {
+            if (!token) {
+                setLoading(false);
+                return;
+            }
+            
+            try {
+                const response = await fetch("/api/admin/stats", {
+                    headers: {
+                        "Authorization": `Bearer ${token}`,
+                        "Content-Type": "application/json",
+                    },
+                });
+                
+                if (!response.ok) {
+                    throw new Error("Failed to fetch stats");
+                }
+                
+                const data = await response.json();
+                setStats(data);
+                setError(null);
+            } catch (e: any) {
+                setError(e.message);
+                console.error("Failed to fetch dashboard stats:", e);
+            } finally {
+                setLoading(false);
+            }
+        };
+        
+        fetchStats();
+    }, [token]);
+
+    const statCards = [
+        { labelKey: "total_news", value: stats?.totalNews ?? 0, icon: Newspaper, color: "indigo" },
+        { labelKey: "faculty_members", value: stats?.totalFaculty ?? 0, icon: Users, color: "emerald" },
+        { labelKey: "departments", value: stats?.totalDepartments ?? 0, icon: Building2, color: "violet" },
+        { labelKey: "events", value: stats?.totalEvents ?? 0, icon: Calendar, color: "amber" },
+        { labelKey: "total_contacts", value: stats?.totalContacts ?? 0, icon: Mail, color: "rose" },
     ];
 
     const recentActivity = [
@@ -88,30 +136,44 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* Stats Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
-                    {stats.map((stat, i) => (
-                        <motion.div
-                            key={i}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: i * 0.07 }}
-                            className={`${cardCls} p-5 flex flex-col gap-4 hover:shadow-md dark:hover:shadow-black/20 transition-shadow`}
-                        >
-                            <div className="flex items-center justify-between">
-                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center border ${colorMap[stat.color]}`}>
-                                    <stat.icon className="w-5 h-5" />
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4 mb-6">
+                    {loading ? (
+                        Array.from({ length: 5 }).map((_, i) => (
+                            <motion.div
+                                key={i}
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: i * 0.07 }}
+                                className={`${cardCls} p-5 flex flex-col gap-4 animate-pulse`}
+                            >
+                                <div className="w-10 h-10 rounded-xl bg-slate-200 dark:bg-slate-700" />
+                                <div className="space-y-2">
+                                    <div className="h-7 bg-slate-200 dark:bg-slate-700 rounded w-1/2" />
+                                    <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-3/4" />
                                 </div>
-                                <span className={`flex items-center gap-1 text-xs font-medium ${stat.up ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}>
-                                    {stat.up ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                                    {stat.change}
-                                </span>
-                            </div>
-                            <div>
-                                <p className="text-2xl font-bold text-slate-900 dark:text-white">{stat.value}</p>
-                                <p className="text-slate-500 dark:text-slate-400 text-sm mt-0.5">{t(stat.labelKey)}</p>
-                            </div>
-                        </motion.div>
-                    ))}
+                            </motion.div>
+                        ))
+                    ) : (
+                        statCards.map((stat, i) => (
+                            <motion.div
+                                key={i}
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: i * 0.07 }}
+                                className={`${cardCls} p-5 flex flex-col gap-4 hover:shadow-md dark:hover:shadow-black/20 transition-shadow`}
+                            >
+                                <div className="flex items-center justify-between">
+                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center border ${colorMap[stat.color]}`}>
+                                        <stat.icon className="w-5 h-5" />
+                                    </div>
+                                </div>
+                                <div>
+                                    <p className="text-2xl font-bold text-slate-900 dark:text-white">{stat.value}</p>
+                                    <p className="text-slate-500 dark:text-slate-400 text-sm mt-0.5">{t(stat.labelKey)}</p>
+                                </div>
+                            </motion.div>
+                        ))
+                    )}
                 </div>
 
                 <div className="grid grid-cols-1 xl:grid-cols-3 gap-5 mb-5">

@@ -6,8 +6,10 @@ import { AnimatedSection } from "@/components/AnimatedSection";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageHead } from "@/components/PageHead";
 import { useLanguage } from "@/context/LanguageContext";
+import { Breadcrumb } from "@/components/Breadcrumb";
+import { useState, useEffect } from "react";
 import {
-  Briefcase, ClipboardCheck, Building, CheckCircle2, Quote, FileText, Star
+  Briefcase, ClipboardCheck, Building, CheckCircle2, Quote, FileText, Star, Loader2
 } from "lucide-react";
 
 const requirements = [
@@ -40,14 +42,57 @@ const testimonials = [
   { nameAr: "نور الهدى سعيد", nameEn: "Nour El-Huda Said", departmentAr: "إدارة الأعمال", departmentEn: "Business Administration", companyAr: "فودافون مصر", companyEn: "Vodafone Egypt", quoteAr: "تعلمت خلال فترة التدريب كيفية إدارة الحملات التسويقية الرقمية وتحليل سلوك المستهلك. بيئة العمل في فودافون كانت محفزة ومثرية.", quoteEn: "During the training period, I learned how to manage digital marketing campaigns and analyze consumer behavior. The work environment at Vodafone was motivating and enriching." },
 ];
 
+interface Activity {
+  id: string;
+  nameAr: string;
+  nameEn: string;
+  descriptionAr: string;
+  descriptionEn: string;
+  category: string;
+  institute: string;
+  isActive: boolean;
+  coverImage?: string;
+}
+
 export default function ManagementTraining() {
-  const { language } = useLanguage();
+  const { language, direction } = useLanguage();
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [loading, setLoading] = useState(true);
+  const pageTitle = language === "ar" ? "التدريب الميداني" : "Field Training";
+
+  useEffect(() => {
+    const fetchActivities = async () => {
+      try {
+        const response = await fetch("/api/activities?institute=management");
+        if (response.ok) {
+          const data = await response.json();
+          setActivities(data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch activities:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchActivities();
+  }, []);
 
   return (
     <div className="bg-white dark:bg-neutral-950 overflow-hidden w-full transition-colors duration-300">
       <PageHead title={language === "ar" ? "التدريب الميداني - المعهد العالي للإدارة" : "Field Training - Higher Institute of Management"} description={language === "ar" ? "برنامج التدريب الميداني في المعهد العالي للإدارة" : "Field training program at the Higher Institute of Management"} />
       <InstituteNavbar {...managementNavbar} />
       <InstituteHero title={language === "ar" ? "التدريب الميداني" : "Field Training"} subtitle={language === "ar" ? "ربط المعرفة النظرية بالتطبيق العملي" : "Linking theoretical knowledge with practical application"} image="/figmaAssets/rectangle-2.png" overlayColor="from-green-900/60 to-green-900/80" />
+
+      <div className="max-w-[1200px] mx-auto px-4 md:px-8 pt-6">
+        <Breadcrumb
+          items={[
+            { label: language === 'ar' ? 'الرئيسية' : 'Home', href: '/' },
+            { label: language === 'ar' ? 'معهد الإدارة' : 'Management Institute', href: '/institute/management' },
+            { label: pageTitle },
+          ]}
+        />
+      </div>
 
       <section className="py-20 md:py-28 bg-white dark:bg-neutral-950 transition-colors duration-300">
         <div className="max-w-[1100px] mx-auto px-4 md:px-8">
@@ -158,6 +203,47 @@ export default function ManagementTraining() {
               </AnimatedSection>
             ))}
           </div>
+        </div>
+      </section>
+
+      <section className="py-20 bg-white dark:bg-neutral-950 transition-colors duration-300">
+        <div className="max-w-[1100px] mx-auto px-4 md:px-8">
+          <AnimatedSection>
+            <div className="text-center mb-16" dir={direction}>
+              <Briefcase className="w-10 h-10 text-green-700 dark:text-green-500 mx-auto mb-4 transition-colors duration-300" />
+              <h2 className="text-3xl md:text-5xl font-bold text-neutral-900 dark:text-white [font-family:'Almarai',Helvetica] transition-colors duration-300">{language === "ar" ? "أنشطة التدريب ذات الصلة" : "Related Training Activities"}</h2>
+              <p className="text-neutral-500 dark:text-neutral-400 text-lg mt-4 max-w-[600px] mx-auto [font-family:'Almarai',Helvetica] transition-colors duration-300">{language === "ar" ? "الأنشطة والمشاريع المرتبطة بالتدريب الميداني" : "Activities and projects related to field training"}</p>
+            </div>
+          </AnimatedSection>
+
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 text-green-700 dark:text-green-500 animate-spin transition-colors duration-300" />
+            </div>
+          ) : activities && activities.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" dir={direction}>
+              {activities.map((activity, index) => (
+                <AnimatedSection key={activity.id} delay={index * 0.1} direction="up">
+                  <Card className="rounded-2xl border-0 shadow-sm hover:shadow-lg transition-all h-full bg-white dark:bg-neutral-900 dark:border-neutral-800">
+                    {activity.coverImage && (
+                      <div className="w-full h-48 bg-gradient-to-br from-green-100 to-green-50 dark:from-green-900/20 dark:to-green-900/10 overflow-hidden rounded-t-2xl">
+                        <img src={activity.coverImage} alt={language === "ar" ? activity.nameAr : activity.nameEn} className="w-full h-full object-cover transition-transform hover:scale-105 duration-300" onError={(e) => { (e.target as HTMLImageElement).src = "/figmaAssets/rectangle-16.png"; }} />
+                      </div>
+                    )}
+                    <CardContent className="p-6 flex flex-col gap-3">
+                      <span className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-3 py-1 rounded-full text-xs w-fit [font-family:'Almarai',Helvetica] transition-colors duration-300">{activity.category}</span>
+                      <h3 className="font-bold text-base text-neutral-900 dark:text-white [font-family:'Almarai',Helvetica] transition-colors duration-300">{language === "ar" ? activity.nameAr : activity.nameEn}</h3>
+                      <p className="text-neutral-600 dark:text-neutral-400 text-sm leading-relaxed [font-family:'Almarai',Helvetica] transition-colors duration-300">{language === "ar" ? activity.descriptionAr : activity.descriptionEn}</p>
+                    </CardContent>
+                  </Card>
+                </AnimatedSection>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-neutral-500 dark:text-neutral-400 [font-family:'Almarai',Helvetica] transition-colors duration-300">{language === "ar" ? "لا توجد أنشطة متاحة حالياً" : "No activities available at the moment"}</p>
+            </div>
+          )}
         </div>
       </section>
 

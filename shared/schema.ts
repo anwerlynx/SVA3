@@ -258,6 +258,19 @@ export const activities = pgTable("activities", {
   ...timestamps,
 });
 
+// ─── FAQs ────────────────────────────────────────────────────────────────────
+export const faqs = pgTable("faqs", {
+  id: uuid(),
+  questionAr: text("question_ar").notNull(),
+  questionEn: text("question_en"),
+  answerAr: text("answer_ar").notNull(),
+  answerEn: text("answer_en"),
+  category: text("category").notNull().default("general"),
+  sortOrder: integer("sort_order").default(0),
+  isActive: boolean("is_active").default(true),
+  ...timestamps,
+});
+
 // ─── Courses ──────────────────────────────────────────────────────────────────
 export const courses = pgTable("courses", {
   id: uuid(),
@@ -309,6 +322,7 @@ export const insertResearchSchema = createInsertSchema(research).omit({ id: true
 export const insertPageSchema = createInsertSchema(pages).omit({ id: true, createdAt: true, updatedAt: true, deletedAt: true });
 export const insertCourseSchema = createInsertSchema(courses).omit({ id: true, createdAt: true, updatedAt: true, deletedAt: true });
 export const insertActivitySchema = createInsertSchema(activities).omit({ id: true, createdAt: true, updatedAt: true, deletedAt: true });
+export const insertFaqSchema = createInsertSchema(faqs).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertContactMessageSchema = createInsertSchema(contactMessages).omit({ id: true, createdAt: true, updatedAt: true, deletedAt: true, isRead: true });
 export const insertNewsletterSchema = createInsertSchema(newsletterSubscribers).omit({ id: true, createdAt: true, updatedAt: true, deletedAt: true, isActive: true });
 
@@ -330,4 +344,5 @@ export type Activity = typeof activities.$inferSelect;
 export type Course = typeof courses.$inferSelect;
 export type AuditLog = typeof auditLogs.$inferSelect;
 export type ContactMessage = typeof contactMessages.$inferSelect;
+export type FAQ = typeof faqs.$inferSelect;
 export type NewsletterSubscriber = typeof newsletterSubscribers.$inferSelect;

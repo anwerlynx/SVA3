@@ -1,4 +1,5 @@
 import { Navbar } from "@/components/Navbar";
+import { AnnouncementsBanner } from "@/components/AnnouncementsBanner";
 import { Footer } from "@/components/Footer";
 import { AnimatedSection } from "@/components/AnimatedSection";
 import { AnimatedCounter } from "@/components/AnimatedCounter";
@@ -24,7 +25,7 @@ export default function Home() {
   const [newsletterLoading, setNewsletterLoading] = useState(false);
   const [newsletterError, setNewsletterError] = useState("");
 
-  const heroSlides = language === 'ar' ? [
+  const defaultHeroSlides = language === 'ar' ? [
     { title: "مستوى مؤسسي قوي", subtitle: "صرح تعليمي رائد يرسخ معايير التميز الأكاديمي ويصنع قادة المستقبل" },
     { title: "تعليم يصنع الفرق", subtitle: "نقدم برامج أكاديمية متميزة تواكب متطلبات سوق العمل المتطور" },
     { title: "معايير عالمية", subtitle: "نلتزم بأعلى معايير الجودة الأكاديمية لتخريج كوادر مؤهلة ومنافسة" },
@@ -34,7 +35,7 @@ export default function Home() {
     { title: "Global Standards", subtitle: "We are committed to the highest standards of academic quality to graduate qualified and competitive cadres" },
   ];
 
-  const stats = language === 'ar' ? [
+  const defaultStats = language === 'ar' ? [
     { icon: GraduationCap, value: 5000, suffix: "+", label: "خريج" },
     { icon: Users, value: 200, suffix: "+", label: "عضو هيئة تدريس" },
     { icon: BookOpen, value: 15, suffix: "", label: "قسم أكاديمي" },
@@ -46,15 +47,65 @@ export default function Home() {
     { icon: Award, value: 98, suffix: "%", label: "Employment Rate" },
   ];
 
-  const newsItems = language === 'ar' ? [
-    { id: 1, title: "مشاركة معاهدنا كراع للمؤتمر الدولى التاسع", date: "25 فبراير 2026", image: "/figmaAssets/rectangle-10.png", category: "مؤتمرات" },
-    { id: 2, title: "صور تكريم الطلبة من العميد", date: "16 فبراير 2026", image: "/figmaAssets/rectangle-12.png", category: "تكريمات" },
-    { id: 3, title: "مؤتمر المرأه في العلوم", date: "16 فبراير 2026", image: "/figmaAssets/rectangle-12-1.png", category: "مؤتمرات" },
-  ] : [
-    { id: 1, title: "Our Institutes Sponsor the 9th International Conference", date: "February 25, 2026", image: "/figmaAssets/rectangle-10.png", category: "Conferences" },
-    { id: 2, title: "Dean Honors Outstanding Students", date: "February 16, 2026", image: "/figmaAssets/rectangle-12.png", category: "Honors" },
-    { id: 3, title: "Women in Science Conference", date: "February 16, 2026", image: "/figmaAssets/rectangle-12-1.png", category: "Conferences" },
-  ];
+  const iconMap: Record<string, any> = { GraduationCap, Users, BookOpen, Award, Cpu, BarChart3, Shield, Target, Briefcase };
+
+  const [heroSlides, setHeroSlides] = useState(defaultHeroSlides);
+  const [stats, setStats] = useState(defaultStats);
+  const [newsItems, setNewsItems] = useState<Array<{id: string; slug: string; title: string; date: string; image: string; category: string}>>([]);
+  const [eventItems, setEventItems] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetch("/api/settings")
+      .then(r => r.json())
+      .then((data) => {
+        if (!Array.isArray(data)) return;
+        const find = (key: string) => data.find((s: any) => s.key === key)?.value;
+        const heroData = find("homepage_hero");
+        if (heroData && heroData.slides && Array.isArray(heroData.slides) && heroData.slides.length > 0) {
+          setHeroSlides(heroData.slides.map((s: any) => ({
+            title: language === 'ar' ? (s.titleAr || s.title) : (s.titleEn || s.title),
+            subtitle: language === 'ar' ? (s.subtitleAr || s.subtitle) : (s.subtitleEn || s.subtitle),
+          })));
+        }
+        const statsData = find("homepage_stats");
+        if (statsData && Array.isArray(statsData) && statsData.length > 0) {
+          setStats(statsData.map((s: any) => ({
+            icon: iconMap[s.icon] || GraduationCap,
+            value: s.value || 0,
+            suffix: s.suffix || "",
+            label: language === 'ar' ? (s.labelAr || s.label) : (s.labelEn || s.label),
+          })));
+        }
+      })
+      .catch(() => {});
+  }, [language]);
+
+  useEffect(() => {
+    fetch("/api/news?status=published&limit=3")
+      .then(res => res.json())
+      .then(data => {
+        const items = Array.isArray(data) ? data : data.data || [];
+        setNewsItems(items.map((n: any) => ({
+          id: n.id,
+          slug: n.slug,
+          title: language === 'ar' ? n.titleAr : (n.titleEn || n.titleAr),
+          date: n.publishedAt ? new Date(n.publishedAt).toLocaleDateString(language === 'ar' ? 'ar-EG' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '',
+          image: n.coverImage || "/figmaAssets/rectangle-10.png",
+          category: n.category || '',
+        })));
+      })
+      .catch(() => {});
+  }, [language]);
+
+  useEffect(() => {
+    fetch("/api/events")
+      .then(res => res.json())
+      .then(data => {
+        const items = Array.isArray(data) ? data : [];
+        setEventItems(items.filter((e: any) => new Date(e.startDate) >= new Date()).slice(0, 4));
+      })
+      .catch(() => {});
+  }, []);
 
   const supervisorsData = language === 'ar' ? [
     { name: "محمد ابراهيم محمد ماضي", title: "مهندس مشروع بقسم الطرق", image: "/figmaAssets/photo.png" },
@@ -104,6 +155,7 @@ export default function Home() {
           : "Valley Higher Institutes - Gateway to Distinguished Higher Education"}
       />
       <Navbar />
+      <AnnouncementsBanner />
 
       {/* Hero Section */}
       <section className="relative w-full h-[100vh] min-h-[600px] flex items-center justify-center overflow-hidden">
@@ -410,7 +462,7 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8" dir={direction}>
             {newsItems.map((item, index) => (
               <AnimatedSection key={item.id} delay={index * 0.15} direction="up">
-                <Link href={`/news/${item.id}`}>
+                <Link href={`/news/${item.slug}`}>
                   <Card className="rounded-3xl border-0 shadow-sm hover:shadow-xl dark:shadow-neutral-900/50 transition-shadow cursor-pointer overflow-hidden bg-white dark:bg-neutral-900">
                     <CardContent className="p-0">
                       <div className="relative overflow-hidden">
@@ -432,6 +484,61 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* Upcoming Events */}
+      {eventItems.length > 0 && (
+        <section className="py-20 md:py-28 bg-white dark:bg-neutral-950 transition-colors duration-300">
+          <div className="max-w-[1300px] mx-auto px-4 md:px-8">
+            <AnimatedSection>
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-12 gap-6" dir={direction}>
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-1 bg-green-700 rounded-full" />
+                    <span className="text-green-700 font-bold text-sm [font-family:'Almarai',Helvetica]">{language === 'ar' ? "الفعاليات" : "Events"}</span>
+                  </div>
+                  <h2 className="text-3xl md:text-5xl font-bold text-neutral-900 dark:text-white [font-family:'Almarai',Helvetica] transition-colors duration-300">
+                    {language === 'ar' ? "الفعاليات القادمة" : "Upcoming Events"}
+                  </h2>
+                </div>
+                <Link href="/academic-calendar">
+                  <Button variant="outline" className="rounded-full border-green-700 text-green-700 hover:bg-green-700 hover:text-white [font-family:'Almarai',Helvetica] transition-all">
+                    {language === 'ar' ? "عرض الكل" : "View All"}
+                  </Button>
+                </Link>
+              </div>
+            </AnimatedSection>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8" dir={direction}>
+              {eventItems.map((event, index) => (
+                <AnimatedSection key={event.id} delay={index * 0.15} direction="up">
+                  <Card className="rounded-2xl border-0 shadow-sm hover:shadow-xl dark:shadow-neutral-900/50 transition-shadow cursor-pointer overflow-hidden bg-white dark:bg-neutral-900">
+                    <CardContent className="p-0">
+                      <div className="relative overflow-hidden h-[200px] bg-gradient-to-br from-green-400 to-green-600">
+                        {event.coverImage ? (
+                          <img className="w-full h-full object-cover" alt={language === 'ar' ? event.titleAr : (event.titleEn || event.titleAr)} src={event.coverImage} onError={(e) => { (e.target as HTMLImageElement).src = "/figmaAssets/rectangle-10.png"; }} />
+                        ) : null}
+                        <div className="absolute top-4 right-4 bg-green-700 text-white px-3 py-1 rounded-full text-xs font-bold [font-family:'Almarai',Helvetica]">{event.category || ''}</div>
+                      </div>
+                      <div className="p-5 flex flex-col gap-3">
+                        <div className="flex items-center gap-2 text-neutral-500 dark:text-neutral-400 text-sm [font-family:'Almarai',Helvetica]">
+                          <Calendar className="w-4 h-4" />
+                          <span>{new Date(event.startDate).toLocaleDateString(language === 'ar' ? 'ar-EG' : 'en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
+                        </div>
+                        <h3 className="font-bold text-base text-neutral-900 dark:text-white [font-family:'Almarai',Helvetica] leading-relaxed line-clamp-2 transition-colors duration-300">
+                          {language === 'ar' ? event.titleAr : (event.titleEn || event.titleAr)}
+                        </h3>
+                        <div className="flex items-center gap-2 text-neutral-600 dark:text-neutral-400 text-sm [font-family:'Almarai',Helvetica]">
+                          <MapPin className="w-4 h-4 flex-shrink-0" />
+                          <span className="line-clamp-1">{event.location || ''}</span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </AnimatedSection>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Supervisors Slider */}
       <section className="py-20 md:py-28 bg-gray-50 dark:bg-neutral-900 overflow-hidden transition-colors duration-300">

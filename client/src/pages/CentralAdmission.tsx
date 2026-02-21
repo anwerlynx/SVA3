@@ -7,6 +7,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { PageHead } from "@/components/PageHead";
 import { useLanguage } from "@/context/LanguageContext";
 import { CheckCircle2, FileText, Calendar, ClipboardList, HelpCircle, ArrowRight, GraduationCap } from "lucide-react";
+import { useState, useEffect } from "react";
 
 export default function CentralAdmission() {
   const { language, direction } = useLanguage();
@@ -87,7 +88,7 @@ export default function CentralAdmission() {
     },
   ];
 
-  const faqs = [
+  const staticFaqs = [
     {
       question: language === 'ar' ? 'ما هو الحد الأدنى للقبول؟' : 'What is the minimum score for admission?',
       answer: language === 'ar'
@@ -125,6 +126,25 @@ export default function CentralAdmission() {
         : 'Yes, the institutes offer scholarships for outstanding students, as well as partial fee waivers for deserving cases.',
     },
   ];
+
+  const [faqs, setFaqs] = useState(staticFaqs);
+
+  useEffect(() => {
+    fetch('/api/faqs')
+      .then(r => r.json())
+      .then((data: any[]) => {
+        if (Array.isArray(data) && data.length > 0) {
+          const activeFaqs = data.filter((f: any) => f.isActive !== false);
+          if (activeFaqs.length > 0) {
+            setFaqs(activeFaqs.map((f: any) => ({
+              question: language === 'ar' ? f.questionAr : (f.questionEn || f.questionAr),
+              answer: language === 'ar' ? f.answerAr : (f.answerEn || f.answerAr),
+            })));
+          }
+        }
+      })
+      .catch(() => {});
+  }, [language]);
 
   return (
     <div className="bg-white dark:bg-neutral-950 overflow-hidden w-full transition-colors duration-300">

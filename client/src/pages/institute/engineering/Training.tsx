@@ -6,9 +6,11 @@ import { AnimatedSection } from "@/components/AnimatedSection";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageHead } from "@/components/PageHead";
 import { useLanguage } from "@/context/LanguageContext";
+import { Breadcrumb } from "@/components/Breadcrumb";
+import { useState, useEffect } from "react";
 import {
   Briefcase, ClipboardCheck, Building, ArrowDown,
-  CheckCircle2, Quote, FileText, Clock, Users, Star
+  CheckCircle2, Quote, FileText, Clock, Users, Star, Loader2
 } from "lucide-react";
 
 const requirements = [
@@ -41,14 +43,57 @@ const testimonials = [
   { nameAr: "محمد خالد", nameEn: "Mohamed Khaled", departmentAr: "هندسة التحكم والحاسبات", departmentEn: "Control & Computer Engineering", companyAr: "المجموعة المصرية للتكنولوجيا", companyEn: "Egyptian Technology Group", quoteAr: "تعلمت خلال فترة التدريب كيفية العمل ضمن فريق برمجي محترف واكتسبت مهارات في تطوير البرمجيات وإدارة المشاريع.", quoteEn: "During the training period, I learned how to work within a professional software team and gained skills in software development and project management." },
 ];
 
+interface Activity {
+  id: string;
+  nameAr: string;
+  nameEn: string;
+  descriptionAr: string;
+  descriptionEn: string;
+  category: string;
+  institute: string;
+  isActive: boolean;
+  coverImage?: string;
+}
+
 export default function EngineeringTraining() {
-  const { language } = useLanguage();
+  const { language, direction } = useLanguage();
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [loading, setLoading] = useState(true);
+  const pageTitle = language === "ar" ? "التدريب الصناعي" : "Industrial Training";
+
+  useEffect(() => {
+    const fetchActivities = async () => {
+      try {
+        const response = await fetch("/api/activities?institute=engineering");
+        if (response.ok) {
+          const data = await response.json();
+          setActivities(data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch activities:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchActivities();
+  }, []);
 
   return (
     <div className="bg-white dark:bg-neutral-950 overflow-hidden w-full transition-colors duration-300">
       <PageHead title={language === "ar" ? "التدريب الصناعي - المعهد العالي للهندسة" : "Industrial Training - Higher Institute of Engineering"} description={language === "ar" ? "برنامج التدريب الصناعي في المعهد العالي للهندسة" : "Industrial training program at the Higher Institute of Engineering"} />
       <InstituteNavbar {...engineeringNavbar} />
       <InstituteHero title={language === "ar" ? "التدريب الصناعي" : "Industrial Training"} subtitle={language === "ar" ? "ربط المعرفة النظرية بالتطبيق العملي" : "Linking theoretical knowledge with practical application"} image="/figmaAssets/rectangle-17.png" overlayColor="from-blue-900/60 to-blue-900/80" />
+
+      <div className="max-w-[1200px] mx-auto px-4 md:px-8 pt-6">
+        <Breadcrumb
+          items={[
+            { label: language === 'ar' ? 'الرئيسية' : 'Home', href: '/' },
+            { label: language === 'ar' ? 'معهد الهندسة' : 'Engineering Institute', href: '/institute/engineering' },
+            { label: pageTitle },
+          ]}
+        />
+      </div>
 
       <section className="py-20 md:py-28 bg-white dark:bg-neutral-950 transition-colors duration-300">
         <div className="max-w-[1100px] mx-auto px-4 md:px-8">
@@ -159,6 +204,47 @@ export default function EngineeringTraining() {
               </AnimatedSection>
             ))}
           </div>
+        </div>
+      </section>
+
+      <section className="py-20 bg-white dark:bg-neutral-950 transition-colors duration-300">
+        <div className="max-w-[1100px] mx-auto px-4 md:px-8">
+          <AnimatedSection>
+            <div className="text-center mb-16" dir={direction}>
+              <Briefcase className="w-10 h-10 text-blue-700 dark:text-blue-500 mx-auto mb-4 transition-colors duration-300" />
+              <h2 className="text-3xl md:text-5xl font-bold text-neutral-900 dark:text-white [font-family:'Almarai',Helvetica] transition-colors duration-300">{language === "ar" ? "أنشطة التدريب ذات الصلة" : "Related Training Activities"}</h2>
+              <p className="text-neutral-500 dark:text-neutral-400 text-lg mt-4 max-w-[600px] mx-auto [font-family:'Almarai',Helvetica] transition-colors duration-300">{language === "ar" ? "الأنشطة والمشاريع المرتبطة بالتدريب الصناعي" : "Activities and projects related to industrial training"}</p>
+            </div>
+          </AnimatedSection>
+
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 text-blue-700 dark:text-blue-500 animate-spin transition-colors duration-300" />
+            </div>
+          ) : activities && activities.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" dir={direction}>
+              {activities.map((activity, index) => (
+                <AnimatedSection key={activity.id} delay={index * 0.1} direction="up">
+                  <Card className="rounded-2xl border-0 shadow-sm hover:shadow-lg transition-all h-full bg-white dark:bg-neutral-900 dark:border-neutral-800">
+                    {activity.coverImage && (
+                      <div className="w-full h-48 bg-gradient-to-br from-blue-100 to-blue-50 dark:from-blue-900/20 dark:to-blue-900/10 overflow-hidden rounded-t-2xl">
+                        <img src={activity.coverImage} alt={language === "ar" ? activity.nameAr : activity.nameEn} className="w-full h-full object-cover transition-transform hover:scale-105 duration-300" onError={(e) => { (e.target as HTMLImageElement).src = "/figmaAssets/rectangle-17.png"; }} />
+                      </div>
+                    )}
+                    <CardContent className="p-6 flex flex-col gap-3">
+                      <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-3 py-1 rounded-full text-xs w-fit [font-family:'Almarai',Helvetica] transition-colors duration-300">{activity.category}</span>
+                      <h3 className="font-bold text-base text-neutral-900 dark:text-white [font-family:'Almarai',Helvetica] transition-colors duration-300">{language === "ar" ? activity.nameAr : activity.nameEn}</h3>
+                      <p className="text-neutral-600 dark:text-neutral-400 text-sm leading-relaxed [font-family:'Almarai',Helvetica] transition-colors duration-300">{language === "ar" ? activity.descriptionAr : activity.descriptionEn}</p>
+                    </CardContent>
+                  </Card>
+                </AnimatedSection>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-neutral-500 dark:text-neutral-400 [font-family:'Almarai',Helvetica] transition-colors duration-300">{language === "ar" ? "لا توجد أنشطة متاحة حالياً" : "No activities available at the moment"}</p>
+            </div>
+          )}
         </div>
       </section>
 

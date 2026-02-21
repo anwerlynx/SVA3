@@ -7,9 +7,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { CheckCircle2, FileText } from "lucide-react";
 import { PageHead } from "@/components/PageHead";
 import { useLanguage } from "@/context/LanguageContext";
+import { Breadcrumb } from "@/components/Breadcrumb";
 
 export default function EngineeringAdmission() {
   const { language, direction } = useLanguage();
+  const pageTitle = language === "ar" ? "شروط الالتحاق" : "Admission Requirements";
 
   const requirements = language === "ar" ? [
     "الحصول على شهادة الثانوية العامة (شعبة علمي رياضة) أو ما يعادلها",
@@ -54,6 +56,16 @@ export default function EngineeringAdmission() {
       <PageHead title={language === "ar" ? "القبول - المعهد العالي للهندسة" : "Admission - Higher Institute of Engineering"} description={language === "ar" ? "شروط ومتطلبات القبول في المعهد العالي للهندسة والتكنولوجيا" : "Admission requirements for the Higher Institute of Engineering and Technology"} />
       <InstituteNavbar {...engineeringNavbar} />
       <InstituteHero title={language === "ar" ? "شروط الالتحاق" : "Admission Requirements"} subtitle={language === "ar" ? "متطلبات القبول والأوراق المطلوبة للالتحاق بالمعهد" : "Admission requirements and documents needed to join the institute"} image="/figmaAssets/rectangle-17.png" overlayColor="from-blue-900/60 to-blue-900/80" />
+
+      <div className="max-w-[1200px] mx-auto px-4 md:px-8 pt-6">
+        <Breadcrumb
+          items={[
+            { label: language === 'ar' ? 'الرئيسية' : 'Home', href: '/' },
+            { label: language === 'ar' ? 'معهد الهندسة' : 'Engineering Institute', href: '/institute/engineering' },
+            { label: pageTitle },
+          ]}
+        />
+      </div>
 
       <section className="py-20 md:py-28 bg-white dark:bg-neutral-950 transition-colors duration-300">
         <div className="max-w-[900px] mx-auto px-4 md:px-8">

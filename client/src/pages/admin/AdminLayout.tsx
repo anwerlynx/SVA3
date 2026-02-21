@@ -7,7 +7,7 @@ import {
     BarChart3, Settings, ChevronDown, ChevronRight, Menu,
     Bell, LogOut, Moon, Sun, Globe, Building2,
     Calendar, FlaskConical, BookMarked, Database, Zap, Eye,
-    Languages, ChevronLeft
+    Languages, ChevronLeft, MessageSquare, Mail
 } from "lucide-react";
 import { useAdminAuth } from "@/context/AdminAuthContext";
 import { useAdminTheme } from "@/context/AdminThemeContext";
@@ -57,6 +57,7 @@ const NAV_GROUPS: NavGroup[] = [
                     { labelKey: "all_articles", href: "/admin/news" },
                     { labelKey: "new_article", href: "/admin/news/new" },
                     { labelKey: "events", href: "/admin/events" },
+                    { labelKey: "announcements", href: "/admin/announcements" },
                     { labelKey: "categories", href: "/admin/news/categories" },
                 ],
             },
@@ -148,6 +149,8 @@ const NAV_GROUPS: NavGroup[] = [
                     { labelKey: "email_templates", href: "/admin/settings/email" },
                 ],
             },
+            { labelKey: "contact_messages", icon: MessageSquare, href: "/admin/contacts" },
+            { labelKey: "newsletter", icon: Mail, href: "/admin/newsletter" },
             {
                 labelKey: "system", icon: Database,
                 children: [

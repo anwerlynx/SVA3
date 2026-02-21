@@ -7,12 +7,33 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
-import { ArrowLeft, ArrowRight, Building2, Cpu, Zap, Settings, GraduationCap, Users, BookOpen, FlaskConical, CheckCircle2, Calendar, Award, Cog, Globe, Target, Shield, Microscope } from "lucide-react";
+import { ArrowLeft, ArrowRight, Building2, Cpu, Zap, Settings, GraduationCap, Users, BookOpen, FlaskConical, CheckCircle2, Calendar, Award, Cog, Globe, Target, Shield, Microscope, Loader2 } from "lucide-react";
 import { PageHead } from "@/components/PageHead";
 import { useLanguage } from "@/context/LanguageContext";
+import { useState, useEffect } from "react";
 
 export default function EngineeringHome() {
   const { language, direction } = useLanguage();
+  const [news, setNews] = useState([]);
+  const [newsLoading, setNewsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchNews = async () => {
+      try {
+        setNewsLoading(true);
+        const response = await fetch("/api/news?institute=engineering&limit=3");
+        if (response.ok) {
+          const result = await response.json();
+          setNews(result.data || []);
+        }
+      } catch (error) {
+        console.error("Error fetching news:", error);
+      } finally {
+        setNewsLoading(false);
+      }
+    };
+    fetchNews();
+  }, []);
 
   const departments = [
     { icon: Zap, name: language === "ar" ? "هندسة القوى والاتصالات الكهربائية" : "Power & Electrical Communications Engineering", desc: language === "ar" ? "أنظمة الطاقة والإلكترونيات والاتصالات" : "Power systems, electronics, and communications", slug: "power-telecom", color: "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400" },
@@ -35,12 +56,6 @@ export default function EngineeringHome() {
     { icon: Target, title: language === "ar" ? "توظيف متميز" : "Outstanding Employment", desc: language === "ar" ? "نسبة توظيف عالية للخريجين في كبرى شركات المقاولات والتكنولوجيا" : "High employment rate for graduates in major contracting and technology companies" },
     { icon: Shield, title: language === "ar" ? "اعتماد هندسي" : "Engineering Accreditation", desc: language === "ar" ? "برامج معتمدة من نقابة المهندسين وهيئات الجودة" : "Programs accredited by the Engineers Syndicate and quality bodies" },
     { icon: Cog, title: language === "ar" ? "تدريب ميداني" : "Field Training", desc: language === "ar" ? "برامج تدريب عملي في المصانع والمشاريع الهندسية الكبرى" : "Practical training programs in factories and major engineering projects" },
-  ];
-
-  const news = [
-    { id: 1, title: language === "ar" ? "افتتاح المعمل الجديد للهندسة الكهربائية" : "Opening of New Electrical Engineering Lab", date: language === "ar" ? "20 فبراير 2026" : "February 20, 2026", image: "/figmaAssets/rectangle-17.png" },
-    { id: 2, title: language === "ar" ? "مؤتمر المرأة في العلوم الهندسية" : "Women in Engineering Sciences Conference", date: language === "ar" ? "15 فبراير 2026" : "February 15, 2026", image: "/figmaAssets/rectangle-12-1.png" },
-    { id: 3, title: language === "ar" ? "مشاركة طلابنا في مسابقة IEEE" : "Students Participate in IEEE Competition", date: language === "ar" ? "10 فبراير 2026" : "February 10, 2026", image: "/figmaAssets/rectangle-10.png" },
   ];
 
   const ArrowIcon = direction === "rtl" ? ArrowLeft : ArrowRight;
@@ -235,25 +250,35 @@ export default function EngineeringHome() {
             </div>
           </AnimatedSection>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6" dir={direction}>
-            {news.map((item, index) => (
-              <AnimatedSection key={item.id} delay={index * 0.1} direction="up">
-                <div>
-                  <Link href="/institute/engineering/news">
-                    <Card className="rounded-2xl border-0 shadow-sm hover:shadow-lg transition-all cursor-pointer group overflow-hidden bg-white dark:bg-neutral-800 dark:border-neutral-700">
-                      <CardContent className="p-0">
-                        <div className="relative overflow-hidden">
-                          <img className="w-full h-[200px] object-cover group-hover:scale-105 transition-transform duration-500" alt={item.title} src={item.image} />
-                        </div>
-                        <div className="p-5 flex flex-col gap-2">
-                          <span className="text-neutral-400 dark:text-neutral-500 text-xs [font-family:'Almarai',Helvetica] flex items-center gap-1"><Calendar className="w-3 h-3" />{item.date}</span>
-                          <h3 className="font-bold text-base text-neutral-900 dark:text-white [font-family:'Almarai',Helvetica] line-clamp-2 transition-colors duration-300">{item.title}</h3>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </Link>
-                </div>
-              </AnimatedSection>
-            ))}
+            {newsLoading ? (
+              <div className="col-span-full flex items-center justify-center py-12">
+                <Loader2 className="w-8 h-8 text-blue-700 dark:text-blue-400 animate-spin" />
+              </div>
+            ) : news.length > 0 ? (
+              news.map((item, index) => (
+                <AnimatedSection key={item.id} delay={index * 0.1} direction="up">
+                  <div>
+                    <Link href={`/news/${item.slug}`}>
+                      <Card className="rounded-2xl border-0 shadow-sm hover:shadow-lg transition-all cursor-pointer group overflow-hidden bg-white dark:bg-neutral-800 dark:border-neutral-700">
+                        <CardContent className="p-0">
+                          <div className="relative overflow-hidden">
+                            <img className="w-full h-[200px] object-cover group-hover:scale-105 transition-transform duration-500" alt={language === "ar" ? item.titleAr : (item.titleEn || item.titleAr)} src={item.coverImage || "/figmaAssets/rectangle-17.png"} />
+                          </div>
+                          <div className="p-5 flex flex-col gap-2">
+                            <span className="text-neutral-400 dark:text-neutral-500 text-xs [font-family:'Almarai',Helvetica] flex items-center gap-1"><Calendar className="w-3 h-3" />{new Date(item.createdAt).toLocaleDateString(language === "ar" ? "ar-EG" : "en-US")}</span>
+                            <h3 className="font-bold text-base text-neutral-900 dark:text-white [font-family:'Almarai',Helvetica] line-clamp-2 transition-colors duration-300">{language === "ar" ? item.titleAr : (item.titleEn || item.titleAr)}</h3>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </Link>
+                  </div>
+                </AnimatedSection>
+              ))
+            ) : (
+              <div className="col-span-full text-center py-12">
+                <p className="text-neutral-500 dark:text-neutral-400 [font-family:'Almarai',Helvetica]">{language === "ar" ? "لا توجد أخبار متاحة" : "No news available"}</p>
+              </div>
+            )}
           </div>
         </div>
       </section>

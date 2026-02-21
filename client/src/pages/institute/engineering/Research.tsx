@@ -6,10 +6,12 @@ import { AnimatedSection } from "@/components/AnimatedSection";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageHead } from "@/components/PageHead";
 import { useLanguage } from "@/context/LanguageContext";
+import { Breadcrumb } from "@/components/Breadcrumb";
 import {
   Microscope, BookOpen, Handshake, FlaskConical,
-  Zap, Building2, Cpu, Settings, FileText, Calendar, Users
+  Zap, Building2, Cpu, Settings, FileText, Calendar, Users, Loader2
 } from "lucide-react";
+import { useState, useEffect } from "react";
 
 const researchAreas = [
   { icon: Zap, titleAr: "أنظمة الطاقة المتجددة", titleEn: "Renewable Energy Systems", descAr: "أبحاث في الطاقة الشمسية وطاقة الرياح وتخزين الطاقة", descEn: "Research in solar energy, wind energy, and energy storage" },
@@ -41,13 +43,44 @@ const researchLabs = [
 ];
 
 export default function EngineeringResearch() {
-  const { language } = useLanguage();
+  const { language, direction } = useLanguage();
+  const [apiResearch, setApiResearch] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const pageTitle = language === "ar" ? "البحث العلمي" : "Scientific Research";
+
+  useEffect(() => {
+    const fetchResearch = async () => {
+      try {
+        const response = await fetch("/api/research");
+        if (response.ok) {
+          const data = await response.json();
+          setApiResearch(data);
+        }
+      } catch (error) {
+        console.error("Error fetching research:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchResearch();
+  }, []);
 
   return (
     <div className="bg-white dark:bg-neutral-950 overflow-hidden w-full transition-colors duration-300">
       <PageHead title={language === "ar" ? "البحث العلمي - المعهد العالي للهندسة" : "Research - Higher Institute of Engineering"} description={language === "ar" ? "البحث العلمي في المعهد العالي للهندسة والتكنولوجيا" : "Research at the Higher Institute of Engineering & Technology"} />
       <InstituteNavbar {...engineeringNavbar} />
       <InstituteHero title={language === "ar" ? "البحث العلمي" : "Scientific Research"} subtitle={language === "ar" ? "أبحاث هندسية متقدمة تخدم المجتمع والصناعة" : "Advanced engineering research serving society and industry"} image="/figmaAssets/rectangle-17.png" overlayColor="from-blue-900/60 to-blue-900/80" />
+
+      <div className="max-w-[1200px] mx-auto px-4 md:px-8 pt-6">
+        <Breadcrumb
+          items={[
+            { label: language === 'ar' ? 'الرئيسية' : 'Home', href: '/' },
+            { label: language === 'ar' ? 'معهد الهندسة' : 'Engineering Institute', href: '/institute/engineering' },
+            { label: pageTitle },
+          ]}
+        />
+      </div>
 
       <section className="py-20 md:py-28 bg-white dark:bg-neutral-950 transition-colors duration-300">
         <div className="max-w-[1100px] mx-auto px-4 md:px-8">
@@ -84,28 +117,48 @@ export default function EngineeringResearch() {
               <h2 className="text-3xl font-bold text-neutral-900 dark:text-white [font-family:'Almarai',Helvetica] transition-colors duration-300">{language === "ar" ? "الأبحاث المنشورة" : "Published Research"}</h2>
             </div>
           </AnimatedSection>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6" dir={direction}>
-            {publishedResearch.map((research, index) => (
-              <AnimatedSection key={index} delay={index * 0.08} direction="up">
-                <Card className="rounded-2xl border-0 shadow-sm hover:shadow-lg transition-all h-full bg-white dark:bg-neutral-800 dark:border-neutral-700">
-                  <CardContent className="p-6 flex flex-col gap-3">
-                    <div className="flex items-start gap-3">
-                      <FileText className="w-5 h-5 text-blue-700 dark:text-blue-500 flex-shrink-0 mt-1 transition-colors duration-300" />
-                      <h3 className="font-bold text-base text-neutral-900 dark:text-white [font-family:'Almarai',Helvetica] transition-colors duration-300">{language === "ar" ? research.titleAr : research.titleEn}</h3>
-                    </div>
-                    <div className="flex items-center gap-2 text-neutral-500 dark:text-neutral-400 text-sm [font-family:'Almarai',Helvetica] transition-colors duration-300">
-                      <Users className="w-4 h-4 flex-shrink-0" />
-                      <span>{language === "ar" ? research.authorAr : research.authorEn}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-neutral-400 dark:text-neutral-500 text-xs [font-family:'Almarai',Helvetica]">{language === "ar" ? research.journalAr : research.journalEn}</span>
-                      <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-3 py-1 rounded-full text-xs [font-family:'Almarai',Helvetica] transition-colors duration-300">{language === "ar" ? research.yearAr : research.yearEn}</span>
-                    </div>
-                  </CardContent>
-                </Card>
-              </AnimatedSection>
-            ))}
-          </div>
+          {loading ? (
+            <div className="flex justify-center items-center py-12">
+              <Loader2 className="w-8 h-8 text-blue-700 dark:text-blue-500 animate-spin" />
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6" dir={direction}>
+              {[
+                ...apiResearch.map((item: any, index: number) => ({
+                  titleAr: item.titleAr || "",
+                  titleEn: item.titleEn || "",
+                  authorAr: (item.authorIds && item.authorIds.join(", ")) || "",
+                  authorEn: (item.authorIds && item.authorIds.join(", ")) || "",
+                  journalAr: item.journal || "",
+                  journalEn: item.journal || "",
+                  yearAr: item.publishedYear ? item.publishedYear.toString() : "",
+                  yearEn: item.publishedYear ? item.publishedYear.toString() : "",
+                  _isApi: true as const,
+                  _apiIndex: index,
+                })),
+                ...publishedResearch.map((item) => ({ ...item, _isApi: false as const, _apiIndex: 0 })),
+              ].map((research: any, index) => (
+                <AnimatedSection key={`${research._isApi ? 'api' : 'hardcoded'}-${research._isApi ? research._apiIndex : index}`} delay={index * 0.08} direction="up">
+                  <Card className="rounded-2xl border-0 shadow-sm hover:shadow-lg transition-all h-full bg-white dark:bg-neutral-800 dark:border-neutral-700">
+                    <CardContent className="p-6 flex flex-col gap-3">
+                      <div className="flex items-start gap-3">
+                        <FileText className="w-5 h-5 text-blue-700 dark:text-blue-500 flex-shrink-0 mt-1 transition-colors duration-300" />
+                        <h3 className="font-bold text-base text-neutral-900 dark:text-white [font-family:'Almarai',Helvetica] transition-colors duration-300">{language === "ar" ? research.titleAr : research.titleEn}</h3>
+                      </div>
+                      <div className="flex items-center gap-2 text-neutral-500 dark:text-neutral-400 text-sm [font-family:'Almarai',Helvetica] transition-colors duration-300">
+                        <Users className="w-4 h-4 flex-shrink-0" />
+                        <span>{language === "ar" ? research.authorAr : research.authorEn}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-neutral-400 dark:text-neutral-500 text-xs [font-family:'Almarai',Helvetica]">{language === "ar" ? research.journalAr : research.journalEn}</span>
+                        <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-3 py-1 rounded-full text-xs [font-family:'Almarai',Helvetica] transition-colors duration-300">{language === "ar" ? research.yearAr : research.yearEn}</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </AnimatedSection>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 

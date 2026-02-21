@@ -7,9 +7,11 @@ import { ShieldCheck, Target, BarChart3, Users, Award, FileCheck, GraduationCap,
 import { managementNavbar, managementFooter } from "@/lib/instituteConfig";
 import { PageHead } from "@/components/PageHead";
 import { useLanguage } from "@/context/LanguageContext";
+import { Breadcrumb } from "@/components/Breadcrumb";
 
 export default function ManagementQuality() {
   const { language, direction } = useLanguage();
+  const pageTitle = language === "ar" ? "وحدة ضمان الجودة" : "Quality Assurance Unit";
 
   const qualityAreas = [
     { icon: Target, title: language === "ar" ? "التخطيط الاستراتيجي" : "Strategic Planning", desc: language === "ar" ? "وضع خطط استراتيجية شاملة لتطوير الأداء الأكاديمي والإداري وفقاً لأحدث المعايير" : "Developing comprehensive strategic plans for academic and administrative performance according to the latest standards" },
@@ -41,6 +43,16 @@ export default function ManagementQuality() {
       <PageHead title={language === "ar" ? "ضمان الجودة - المعهد العالي للإدارة" : "Quality Assurance - Higher Institute of Management"} description={language === "ar" ? "وحدة ضمان الجودة في المعهد العالي للإدارة والمالية ونظم المعلومات" : "Quality Assurance Unit at the Higher Institute of Management, Finance and Information Systems"} />
       <InstituteNavbar {...managementNavbar} />
       <InstituteHero title={language === "ar" ? "وحدة ضمان الجودة" : "Quality Assurance Unit"} subtitle={language === "ar" ? "ضمان جودة التعليم والتميز الأكاديمي" : "Ensuring education quality and academic excellence"} image="/figmaAssets/rectangle-16.png" overlayColor="from-green-900/60 to-green-900/80" />
+
+      <div className="max-w-[1200px] mx-auto px-4 md:px-8 pt-6">
+        <Breadcrumb
+          items={[
+            { label: language === 'ar' ? 'الرئيسية' : 'Home', href: '/' },
+            { label: language === 'ar' ? 'معهد الإدارة' : 'Management Institute', href: '/institute/management' },
+            { label: pageTitle },
+          ]}
+        />
+      </div>
 
       <section className="py-20 md:py-28 bg-white dark:bg-neutral-950 transition-colors duration-300">
         <div className="max-w-[1000px] mx-auto px-4 md:px-8">

@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Breadcrumb } from "@/components/Breadcrumb";
@@ -9,6 +10,18 @@ import { Briefcase, Building2, Clock, FileText, Send, Users, Award, ArrowRight }
 
 export default function AvailableJobs() {
   const { language, direction } = useLanguage();
+  const [apiJobs, setApiJobs] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetch('/api/announcements')
+      .then(r => r.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setApiJobs(data.filter((a: any) => a.isActive && (a.type === 'general' || a.type === 'event')));
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const pageTitle = language === 'ar' ? 'الوظائف المتاحة' : 'Available Jobs';
   const pageSubtitle = language === 'ar'
@@ -263,6 +276,46 @@ export default function AvailableJobs() {
           </div>
         </div>
       </section>
+
+      {apiJobs.length > 0 && (
+        <section className="py-16 bg-blue-50 dark:bg-blue-900/10 transition-colors duration-300">
+          <div className="max-w-[1200px] mx-auto px-4 md:px-8">
+            <AnimatedSection>
+              <div className="text-center mb-10" dir={direction}>
+                <h3 className="text-2xl md:text-3xl font-bold text-neutral-900 dark:text-white [font-family:'Almarai',Helvetica] transition-colors duration-300">
+                  {language === 'ar' ? 'إعلانات التوظيف' : 'Job Announcements'}
+                </h3>
+                <p className="text-neutral-500 dark:text-neutral-400 mt-2 [font-family:'Almarai',Helvetica]">
+                  {language === 'ar' ? 'آخر إعلانات التوظيف والفرص المتاحة' : 'Latest recruitment announcements and available opportunities'}
+                </p>
+              </div>
+            </AnimatedSection>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4" dir={direction}>
+              {apiJobs.map((ann, index) => (
+                <AnimatedSection key={ann.id || index} delay={index * 0.05} direction="up">
+                  <Card className="rounded-2xl border-0 shadow-sm hover:shadow-md transition-all bg-white dark:bg-neutral-800">
+                    <CardContent className="p-5" dir={direction}>
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className={`text-xs px-2.5 py-0.5 rounded-full font-bold [font-family:'Almarai',Helvetica] ${
+                          ann.type === 'urgent' ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                        }`}>
+                          {ann.type === 'urgent' ? (language === 'ar' ? 'عاجل' : 'Urgent') : (language === 'ar' ? 'إعلان' : 'Announcement')}
+                        </span>
+                      </div>
+                      <h4 className="font-bold text-neutral-900 dark:text-white [font-family:'Almarai',Helvetica] mb-1">
+                        {language === 'ar' ? (ann.titleAr || ann.title) : (ann.titleEn || ann.titleAr)}
+                      </h4>
+                      <p className="text-neutral-500 dark:text-neutral-400 text-sm line-clamp-2 [font-family:'Almarai',Helvetica]">
+                        {language === 'ar' ? (ann.contentAr || ann.content) : (ann.contentEn || ann.contentAr)}
+                      </p>
+                    </CardContent>
+                  </Card>
+                </AnimatedSection>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       <section className="py-20 md:py-24 bg-gray-50 dark:bg-neutral-900 transition-colors duration-300">
         <div className="max-w-[900px] mx-auto px-4 md:px-8">
