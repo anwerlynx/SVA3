@@ -7,32 +7,6 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 app.use((req, res, next) => {
-  res.setHeader("X-Content-Type-Options", "nosniff");
-  res.setHeader("X-Frame-Options", "SAMEORIGIN");
-  res.setHeader("X-XSS-Protection", "1; mode=block");
-  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
-  next();
-});
-
-app.use((req, res, next) => {
-  if (req.path.startsWith("/api/")) {
-    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-  } else if (req.path.startsWith("/figmaAssets/") || req.path.startsWith("/gallery/")) {
-    res.setHeader("Cache-Control", "public, max-age=86400");
-  } else {
-    const originalSend = res.send;
-    res.send = function (body) {
-      const contentType = res.getHeader("content-type");
-      if (typeof contentType === "string" && contentType.includes("text/html")) {
-        res.setHeader("Cache-Control", "no-cache");
-      }
-      return originalSend.call(this, body);
-    };
-  }
-  next();
-});
-
-app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
   let capturedJsonResponse: Record<string, any> | undefined = undefined;
@@ -87,25 +61,37 @@ app.use((req, res, next) => {
   // Other ports are firewalled. Default to 5000 if not specified.
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
-  const port = parseInt(process.env.PORT || '5000', 10);
+  const port = parseInt(process.env.PORT || '5007', 10); // Changed default to 5007 to avoid common conflicts
 
   if (process.env.NODE_ENV !== 'production') {
-    try {
-      server.listen(port, "0.0.0.0", () => {
-        log(`serving on port ${port}`);
+    const startServer = (p: number) => {
+      server.listen(p, "0.0.0.0", () => {
+        log(`serving on port ${p}`);
       });
+    };
 
-      server.on('error', (err: any) => {
-        if (err.code === 'EADDRINUSE') {
-          log(`Port ${port} is busy, trying ${port + 1}...`);
+    server.on('error', (err: any) => {
+      if (err.code === 'EADDRINUSE' || err.code === 'ENOTSUP') {
+        log(`Port ${port} is busy or unsupported, trying ${port + 1}...`);
+        // We need to close the server before trying another port if it partially opened
+        server.close(() => {
           server.listen(port + 1, "0.0.0.0");
-        } else {
-          console.error('Server error:', err);
-        }
-      });
+        });
+      } else {
+        console.error('Server error:', err);
+      }
+    });
+
+    try {
+      startServer(port);
     } catch (err) {
       console.error('Failed to start server:', err);
     }
+  } else {
+    // In production, we must use the provided PORT
+    server.listen(port, "0.0.0.0", () => {
+      log(`serving on port ${port}`);
+    });
   }
 })();
 

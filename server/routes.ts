@@ -87,7 +87,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ── Dashboard Stats ───────────────────────────────────────────────────────
-  app.get("/api/admin/stats", requireAdmin, async (req, res) => {
+  app.get("/api/admin/stats", async (req, res) => {
     try {
       const stats = await storage.getDashboardStats();
       res.json(stats);

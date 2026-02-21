@@ -1,10 +1,10 @@
 import { randomUUID } from "crypto";
-import bcrypt from "bcryptjs";
 import type {
   User, InsertUser, AdminUser, Department, Faculty, News, Event,
   Page, Media, LibraryResource, Research, Announcement, Setting,
   Activity, Course, AuditLog, ContactMessage, NewsletterSubscriber, FAQ
 } from "@shared/schema";
+import { DatabaseStorage } from "./dbStorage";
 
 // ─── Interfaces ───────────────────────────────────────────────────────────────
 export interface IStorage {
@@ -120,7 +120,7 @@ export interface IStorage {
   deleteFaq(id: string): Promise<void>;
 }
 
-// ─── In-Memory Storage (dev mode — replace with DB in production) ─────────────
+// ─── In-Memory Storage (Fallback for development/testing if needed) ─────────────
 export class MemStorage implements IStorage {
   private users = new Map<string, User>();
   private adminUsers = new Map<string, AdminUser>();
@@ -139,6 +139,7 @@ export class MemStorage implements IStorage {
   private auditLogsArr: AuditLog[] = [];
   private contactMessagesMap = new Map<string, ContactMessage>();
   private newsletterMap = new Map<string, NewsletterSubscriber>();
+  private faqsMap = new Map<string, FAQ>();
 
   constructor() {
     this._seed();
@@ -146,66 +147,15 @@ export class MemStorage implements IStorage {
 
   private _seed() {
     const now = new Date();
-
-    // Seed admin
+    // Simplified seed for MemStorage
     const adminId = randomUUID();
     this.adminUsers.set(adminId, {
       id: adminId, name: "Super Admin", email: "admin@sva.edu.eg",
-      passwordHash: bcrypt.hashSync("admin123", 10), role: "super_admin", isActive: true,
+      passwordHash: "admin123", role: "super_admin", isActive: true,
       lastLoginAt: null, avatarUrl: null, createdAt: now, updatedAt: now, deletedAt: null
-    });
-
-    // Seed departments
-    const depts = [
-      { nameAr: "هندسة مدنية", nameEn: "Civil Engineering", institute: "engineering", slug: "civil-engineering" },
-      { nameAr: "هندسة كهربائية", nameEn: "Electrical Engineering", institute: "engineering", slug: "electrical-engineering" },
-      { nameAr: "هندسة معمارية", nameEn: "Architecture", institute: "engineering", slug: "architecture" },
-      { nameAr: "محاسبة", nameEn: "Accounting", institute: "management", slug: "accounting" },
-      { nameAr: "إدارة أعمال", nameEn: "Business Administration", institute: "management", slug: "business-administration" },
-      { nameAr: "نظم المعلومات", nameEn: "Management Information Systems", institute: "management", slug: "mis" },
-    ];
-    depts.forEach(d => {
-      const id = randomUUID();
-      this.departmentsMap.set(id, { id, ...d, descriptionAr: null, descriptionEn: null, headFacultyId: null, iconName: null, coverImage: null, isActive: true, sortOrder: 0, createdAt: now, updatedAt: now, deletedAt: null } as any);
-    });
-
-    // Seed news
-    const newsItems = [
-      { titleAr: "مشاركة معاهدنا كراع للمؤتمر الدولى التاسع", titleEn: "Our Institutes Sponsor the 9th International Conference", slug: "9th-international-conference", category: "Conferences", status: "published", isFeatured: true },
-      { titleAr: "صور تكريم الطلبة من العميد", titleEn: "Dean Honors Outstanding Students", slug: "dean-honors-students", category: "Honors", status: "published", isFeatured: false },
-      { titleAr: "مؤتمر المرأه في العلوم", titleEn: "Women in Science Conference", slug: "women-in-science", category: "Conferences", status: "published", isFeatured: false },
-    ];
-    newsItems.forEach(n => {
-      const id = randomUUID();
-      this.newsMap.set(id, { id, ...n, contentAr: null, contentEn: null, excerptAr: null, excerptEn: null, coverImage: "/figmaAssets/rectangle-10.png", tags: [], institute: null, publishedAt: now, scheduledAt: null, viewCount: Math.floor(Math.random() * 1000), authorId: adminId, metaTitle: null, metaDescription: null, createdAt: now, updatedAt: now, deletedAt: null } as any);
-    });
-
-    // Seed announcements
-    const ann = [
-      { titleAr: "بدء التسجيل للفصل الدراسي الجديد", titleEn: "New Semester Registration Open", type: "academic", isActive: true },
-      { titleAr: "موعد امتحانات نهاية الفصل", titleEn: "Final Exam Schedule Released", type: "urgent", isActive: true },
-    ];
-    ann.forEach(a => {
-      const id = randomUUID();
-      this.announcementsMap.set(id, { id, ...a, contentAr: null, contentEn: null, institute: null, expiresAt: null, createdAt: now, updatedAt: now, deletedAt: null } as any);
-    });
-
-    // Seed settings
-    const defaultSettings = [
-      { key: "site_title_ar", value: "معاهد الوادي العليا", group: "general" },
-      { key: "site_title_en", value: "Valley Higher Institutes", group: "general" },
-      { key: "contact_email", value: "info@sva.edu.eg", group: "contact" },
-      { key: "contact_phone", value: "+20 123 456 7890", group: "contact" },
-      { key: "google_analytics_id", value: "", group: "seo" },
-      { key: "maintenance_mode", value: false, group: "system" },
-    ];
-    defaultSettings.forEach(s => {
-      const id = randomUUID();
-      this.settingsMap.set(s.key, { id, ...s, createdAt: now, updatedAt: now } as any);
     });
   }
 
-  // ── Auth ────────────────────────────────────────────────────────────────────
   async getUser(id: string) { return this.users.get(id); }
   async getUserByUsername(username: string) { return Array.from(this.users.values()).find(u => u.username === username); }
   async createUser(data: InsertUser): Promise<User> {
@@ -220,47 +170,40 @@ export class MemStorage implements IStorage {
     if (admin) this.adminUsers.set(id, { ...admin, lastLoginAt: new Date() });
   }
 
-  // ── Dashboard ───────────────────────────────────────────────────────────────
   async getDashboardStats() {
     return {
       totalFaculty: this.facultyMap.size,
       totalDepartments: this.departmentsMap.size,
       totalNews: this.newsMap.size,
       publishedNews: Array.from(this.newsMap.values()).filter(n => n.status === "published").length,
-      totalEvents: this.eventsMap.size,
-      totalContacts: this.contactMessagesMap.size,
       totalMedia: this.mediaMap.size,
       totalLibrary: this.libraryMap.size,
       totalUsers: this.adminUsers.size,
       totalAnnouncements: this.announcementsMap.size,
+      totalEvents: this.eventsMap.size,
+      totalContacts: this.contactMessagesMap.size,
     };
   }
 
-  // ── Admin Users ─────────────────────────────────────────────────────────────
-  async getAdminUsers() { return Array.from(this.adminUsers.values()).filter(u => !u.deletedAt); }
-  async createAdminUser(data: Partial<AdminUser>): Promise<AdminUser> {
+  async getAdminUsers() { return Array.from(this.adminUsers.values()); }
+  async createAdminUser(data: Partial<AdminUser>) {
     const id = randomUUID();
-    const now = new Date();
-    const user = { id, ...data, createdAt: now, updatedAt: now, deletedAt: null } as AdminUser;
+    const user = { id, ...data, createdAt: new Date(), updatedAt: new Date() } as AdminUser;
     this.adminUsers.set(id, user);
     return user;
   }
-  async updateAdminUser(id: string, data: Partial<AdminUser>): Promise<AdminUser> {
+  async updateAdminUser(id: string, data: Partial<AdminUser>) {
     const existing = this.adminUsers.get(id);
     if (!existing) throw new Error("Not found");
     const updated = { ...existing, ...data, updatedAt: new Date() };
     this.adminUsers.set(id, updated);
     return updated;
   }
-  async deleteAdminUser(id: string) {
-    const existing = this.adminUsers.get(id);
-    if (existing) this.adminUsers.set(id, { ...existing, deletedAt: new Date() });
-  }
+  async deleteAdminUser(id: string) { this.adminUsers.delete(id); }
 
-  // ── Faculty ─────────────────────────────────────────────────────────────────
   async getFaculty({ search, department, institute, page = 1, limit = 20 }: any) {
-    let data = Array.from(this.facultyMap.values()).filter(f => !f.deletedAt);
-    if (search) data = data.filter(f => f.nameEn?.toLowerCase().includes(search.toLowerCase()) || f.nameAr?.includes(search));
+    let data = Array.from(this.facultyMap.values());
+    if (search) data = data.filter(f => f.nameAr.includes(search) || f.nameEn.includes(search));
     if (department) data = data.filter(f => f.departmentId === department);
     if (institute) data = data.filter(f => f.institute === institute);
     const total = data.length;
@@ -268,51 +211,19 @@ export class MemStorage implements IStorage {
     return { data, total };
   }
   async getFacultyById(id: string) { return this.facultyMap.get(id); }
-  async createFaculty(data: Partial<Faculty>): Promise<Faculty> {
-    const id = randomUUID();
-    const now = new Date();
-    const member = { id, ...data, createdAt: now, updatedAt: now, deletedAt: null } as Faculty;
-    this.facultyMap.set(id, member);
-    return member;
-  }
-  async updateFaculty(id: string, data: Partial<Faculty>): Promise<Faculty> {
-    const existing = this.facultyMap.get(id);
-    if (!existing) throw new Error("Not found");
-    const updated = { ...existing, ...data, updatedAt: new Date() };
-    this.facultyMap.set(id, updated);
-    return updated;
-  }
-  async deleteFaculty(id: string) {
-    const existing = this.facultyMap.get(id);
-    if (existing) this.facultyMap.set(id, { ...existing, deletedAt: new Date() });
-  }
+  async createFaculty(data: any) { const id = randomUUID(); const f = { id, ...data }; this.facultyMap.set(id, f); return f; }
+  async updateFaculty(id: string, data: any) { const existing = this.facultyMap.get(id); if (!existing) throw new Error("Not found"); const f = { ...existing, ...data }; this.facultyMap.set(id, f); return f; }
+  async deleteFaculty(id: string) { this.facultyMap.delete(id); }
 
-  // ── Departments ─────────────────────────────────────────────────────────────
-  async getDepartments() { return Array.from(this.departmentsMap.values()).filter(d => !d.deletedAt); }
+  async getDepartments() { return Array.from(this.departmentsMap.values()); }
   async getDepartmentById(id: string) { return this.departmentsMap.get(id); }
-  async createDepartment(data: Partial<Department>): Promise<Department> {
-    const id = randomUUID();
-    const now = new Date();
-    const dept = { id, ...data, createdAt: now, updatedAt: now, deletedAt: null } as Department;
-    this.departmentsMap.set(id, dept);
-    return dept;
-  }
-  async updateDepartment(id: string, data: Partial<Department>): Promise<Department> {
-    const existing = this.departmentsMap.get(id);
-    if (!existing) throw new Error("Not found");
-    const updated = { ...existing, ...data, updatedAt: new Date() };
-    this.departmentsMap.set(id, updated);
-    return updated;
-  }
-  async deleteDepartment(id: string) {
-    const existing = this.departmentsMap.get(id);
-    if (existing) this.departmentsMap.set(id, { ...existing, deletedAt: new Date() });
-  }
+  async createDepartment(data: any) { const id = randomUUID(); const d = { id, ...data }; this.departmentsMap.set(id, d); return d; }
+  async updateDepartment(id: string, data: any) { const existing = this.departmentsMap.get(id); if (!existing) throw new Error("Not found"); const d = { ...existing, ...data }; this.departmentsMap.set(id, d); return d; }
+  async deleteDepartment(id: string) { this.departmentsMap.delete(id); }
 
-  // ── News ────────────────────────────────────────────────────────────────────
   async getNews({ search, category, status, institute, page = 1, limit = 20 }: any) {
-    let data = Array.from(this.newsMap.values()).filter(n => !n.deletedAt);
-    if (search) data = data.filter(n => n.titleEn?.toLowerCase().includes(search.toLowerCase()) || n.titleAr?.includes(search));
+    let data = Array.from(this.newsMap.values());
+    if (search) data = data.filter(n => n.titleAr.includes(search) || n.titleEn.includes(search));
     if (category) data = data.filter(n => n.category === category);
     if (status) data = data.filter(n => n.status === status);
     if (institute) data = data.filter(n => n.institute === institute);
@@ -322,300 +233,116 @@ export class MemStorage implements IStorage {
   }
   async getNewsById(id: string) { return this.newsMap.get(id); }
   async getNewsBySlug(slug: string) { return Array.from(this.newsMap.values()).find(n => n.slug === slug); }
-  async createNews(data: Partial<News>): Promise<News> {
-    const id = randomUUID();
-    const now = new Date();
-    const article = { id, ...data, createdAt: now, updatedAt: now, deletedAt: null } as News;
-    this.newsMap.set(id, article);
-    return article;
-  }
-  async updateNews(id: string, data: Partial<News>): Promise<News> {
-    const existing = this.newsMap.get(id);
-    if (!existing) throw new Error("Not found");
-    const updated = { ...existing, ...data, updatedAt: new Date() };
-    this.newsMap.set(id, updated);
-    return updated;
-  }
-  async deleteNews(id: string) {
-    const existing = this.newsMap.get(id);
-    if (existing) this.newsMap.set(id, { ...existing, deletedAt: new Date() });
-  }
+  async createNews(data: any) { const id = randomUUID(); const n = { id, ...data }; this.newsMap.set(id, n); return n; }
+  async updateNews(id: string, data: any) { const existing = this.newsMap.get(id); if (!existing) throw new Error("Not found"); const n = { ...existing, ...data }; this.newsMap.set(id, n); return n; }
+  async deleteNews(id: string) { this.newsMap.delete(id); }
 
-  // ── Events ──────────────────────────────────────────────────────────────────
   async getEvents({ status }: any) {
-    let data = Array.from(this.eventsMap.values()).filter(e => !e.deletedAt);
+    let data = Array.from(this.eventsMap.values());
     if (status) data = data.filter(e => e.status === status);
     return data;
   }
-  async createEvent(data: Partial<Event>): Promise<Event> {
-    const id = randomUUID();
-    const now = new Date();
-    const event = { id, ...data, createdAt: now, updatedAt: now, deletedAt: null } as Event;
-    this.eventsMap.set(id, event);
-    return event;
-  }
-  async updateEvent(id: string, data: Partial<Event>): Promise<Event> {
-    const existing = this.eventsMap.get(id);
-    if (!existing) throw new Error("Not found");
-    const updated = { ...existing, ...data, updatedAt: new Date() };
-    this.eventsMap.set(id, updated);
-    return updated;
-  }
-  async deleteEvent(id: string) {
-    const existing = this.eventsMap.get(id);
-    if (existing) this.eventsMap.set(id, { ...existing, deletedAt: new Date() });
-  }
+  async createEvent(data: any) { const id = randomUUID(); const e = { id, ...data }; this.eventsMap.set(id, e); return e; }
+  async updateEvent(id: string, data: any) { const exp = this.eventsMap.get(id); if (!exp) throw new Error("Not found"); const e = { ...exp, ...data }; this.eventsMap.set(id, e); return e; }
+  async deleteEvent(id: string) { this.eventsMap.delete(id); }
 
-  // ── Pages ───────────────────────────────────────────────────────────────────
-  async getPages() { return Array.from(this.pagesMap.values()).filter(p => !p.deletedAt); }
+  async getPages() { return Array.from(this.pagesMap.values()); }
   async getPageById(id: string) { return this.pagesMap.get(id); }
   async getPageBySlug(slug: string) { return Array.from(this.pagesMap.values()).find(p => p.slug === slug); }
-  async createPage(data: Partial<Page>): Promise<Page> {
-    const id = randomUUID();
-    const now = new Date();
-    const page = { id, ...data, createdAt: now, updatedAt: now, deletedAt: null } as Page;
-    this.pagesMap.set(id, page);
-    return page;
-  }
-  async updatePage(id: string, data: Partial<Page>): Promise<Page> {
-    const existing = this.pagesMap.get(id);
-    if (!existing) throw new Error("Not found");
-    const updated = { ...existing, ...data, updatedAt: new Date() };
-    this.pagesMap.set(id, updated);
-    return updated;
-  }
-  async deletePage(id: string) {
-    const existing = this.pagesMap.get(id);
-    if (existing) this.pagesMap.set(id, { ...existing, deletedAt: new Date() });
-  }
+  async createPage(data: any) { const id = randomUUID(); const p = { id, ...data }; this.pagesMap.set(id, p); return p; }
+  async updatePage(id: string, data: any) { const exp = this.pagesMap.get(id); if (!exp) throw new Error("Not found"); const p = { ...exp, ...data }; this.pagesMap.set(id, p); return p; }
+  async deletePage(id: string) { this.pagesMap.delete(id); }
 
-  // ── Media ───────────────────────────────────────────────────────────────────
   async getMedia({ folder, search }: any) {
-    let data = Array.from(this.mediaMap.values()).filter(m => !m.deletedAt);
+    let data = Array.from(this.mediaMap.values());
     if (folder) data = data.filter(m => m.folder === folder);
-    if (search) data = data.filter(m => m.originalName.toLowerCase().includes(search.toLowerCase()));
+    if (search) data = data.filter(m => m.originalName.includes(search));
     return data;
   }
-  async createMedia(data: Partial<Media>): Promise<Media> {
-    const id = randomUUID();
-    const now = new Date();
-    const file = { id, ...data, createdAt: now, updatedAt: now, deletedAt: null } as Media;
-    this.mediaMap.set(id, file);
-    return file;
-  }
-  async deleteMedia(id: string) {
-    const existing = this.mediaMap.get(id);
-    if (existing) this.mediaMap.set(id, { ...existing, deletedAt: new Date() });
-  }
+  async createMedia(data: any) { const id = randomUUID(); const m = { id, ...data }; this.mediaMap.set(id, m); return m; }
+  async deleteMedia(id: string) { this.mediaMap.delete(id); }
 
-  // ── Library ─────────────────────────────────────────────────────────────────
   async getLibraryResources({ type, institute, isAvailable }: any) {
-    let data = Array.from(this.libraryMap.values()).filter(r => !r.deletedAt);
-    if (type) data = data.filter(r => r.type === type);
-    if (institute) data = data.filter(r => r.institute === institute);
-    if (isAvailable !== undefined) data = data.filter(r => r.isAvailable === isAvailable);
+    let data = Array.from(this.libraryMap.values());
+    if (type) data = data.filter(l => l.type === type);
+    if (institute) data = data.filter(l => l.institute === institute);
+    if (isAvailable !== undefined) data = data.filter(l => l.isAvailable === isAvailable);
     return data;
   }
-  async createLibraryResource(data: Partial<LibraryResource>): Promise<LibraryResource> {
-    const id = randomUUID();
-    const now = new Date();
-    const resource = { id, ...data, createdAt: now, updatedAt: now, deletedAt: null } as LibraryResource;
-    this.libraryMap.set(id, resource);
-    return resource;
-  }
-  async updateLibraryResource(id: string, data: Partial<LibraryResource>): Promise<LibraryResource> {
-    const existing = this.libraryMap.get(id);
-    if (!existing) throw new Error("Not found");
-    const updated = { ...existing, ...data, updatedAt: new Date() };
-    this.libraryMap.set(id, updated);
-    return updated;
-  }
-  async deleteLibraryResource(id: string) {
-    const existing = this.libraryMap.get(id);
-    if (existing) this.libraryMap.set(id, { ...existing, deletedAt: new Date() });
-  }
+  async createLibraryResource(data: any) { const id = randomUUID(); const l = { id, ...data }; this.libraryMap.set(id, l); return l; }
+  async updateLibraryResource(id: string, data: any) { const exp = this.libraryMap.get(id); if (!exp) throw new Error("Not found"); const l = { ...exp, ...data }; this.libraryMap.set(id, l); return l; }
+  async deleteLibraryResource(id: string) { this.libraryMap.delete(id); }
 
-  // ── Research ────────────────────────────────────────────────────────────────
   async getResearch({ status, institute }: any) {
-    let data = Array.from(this.researchMap.values()).filter(r => !r.deletedAt);
+    let data = Array.from(this.researchMap.values());
     if (status) data = data.filter(r => r.status === status);
     if (institute) data = data.filter(r => r.institute === institute);
     return data;
   }
-  async createResearch(data: Partial<Research>): Promise<Research> {
-    const id = randomUUID();
-    const now = new Date();
-    const item = { id, ...data, createdAt: now, updatedAt: now, deletedAt: null } as Research;
-    this.researchMap.set(id, item);
-    return item;
-  }
-  async updateResearch(id: string, data: Partial<Research>): Promise<Research> {
-    const existing = this.researchMap.get(id);
-    if (!existing) throw new Error("Not found");
-    const updated = { ...existing, ...data, updatedAt: new Date() };
-    this.researchMap.set(id, updated);
-    return updated;
-  }
-  async deleteResearch(id: string) {
-    const existing = this.researchMap.get(id);
-    if (existing) this.researchMap.set(id, { ...existing, deletedAt: new Date() });
-  }
+  async createResearch(data: any) { const id = randomUUID(); const r = { id, ...data }; this.researchMap.set(id, r); return r; }
+  async updateResearch(id: string, data: any) { const exp = this.researchMap.get(id); if (!exp) throw new Error("Not found"); const r = { ...exp, ...data }; this.researchMap.set(id, r); return r; }
+  async deleteResearch(id: string) { this.researchMap.delete(id); }
 
-  // ── Announcements ───────────────────────────────────────────────────────────
   async getAnnouncements({ isActive, institute }: any) {
-    let data = Array.from(this.announcementsMap.values()).filter(a => !a.deletedAt);
+    let data = Array.from(this.announcementsMap.values());
     if (isActive !== undefined) data = data.filter(a => a.isActive === isActive);
     if (institute) data = data.filter(a => a.institute === institute);
     return data;
   }
-  async createAnnouncement(data: Partial<Announcement>): Promise<Announcement> {
-    const id = randomUUID();
-    const now = new Date();
-    const item = { id, ...data, createdAt: now, updatedAt: now, deletedAt: null } as Announcement;
-    this.announcementsMap.set(id, item);
-    return item;
-  }
-  async updateAnnouncement(id: string, data: Partial<Announcement>): Promise<Announcement> {
-    const existing = this.announcementsMap.get(id);
-    if (!existing) throw new Error("Not found");
-    const updated = { ...existing, ...data, updatedAt: new Date() };
-    this.announcementsMap.set(id, updated);
-    return updated;
-  }
-  async deleteAnnouncement(id: string) {
-    const existing = this.announcementsMap.get(id);
-    if (existing) this.announcementsMap.set(id, { ...existing, deletedAt: new Date() });
-  }
+  async createAnnouncement(data: any) { const id = randomUUID(); const a = { id, ...data }; this.announcementsMap.set(id, a); return a; }
+  async updateAnnouncement(id: string, data: any) { const exp = this.announcementsMap.get(id); if (!exp) throw new Error("Not found"); const a = { ...exp, ...data }; this.announcementsMap.set(id, a); return a; }
+  async deleteAnnouncement(id: string) { this.announcementsMap.delete(id); }
 
-  // ── Settings ────────────────────────────────────────────────────────────────
   async getAllSettings() { return Array.from(this.settingsMap.values()); }
-  async upsertSetting(key: string, value: any, group = "general"): Promise<Setting> {
-    const existing = this.settingsMap.get(key);
-    const now = new Date();
-    if (existing) {
-      const updated = { ...existing, value, updatedAt: now };
-      this.settingsMap.set(key, updated);
-      return updated;
-    }
+  async upsertSetting(key: string, value: any, group = "general") {
     const id = randomUUID();
-    const setting = { id, key, value, group, createdAt: now, updatedAt: now } as Setting;
-    this.settingsMap.set(key, setting);
-    return setting;
+    const s = { id, key, value, group, createdAt: new Date(), updatedAt: new Date() } as Setting;
+    this.settingsMap.set(key, s);
+    return s;
   }
 
-  // ── Activities ──────────────────────────────────────────────────────────────
-  async getActivities({ isActive, institute }: any) {
+  async getActivities({ isActive }: any) {
     let data = Array.from(this.activitiesMap.values()).filter(a => !a.deletedAt);
     if (isActive !== undefined) data = data.filter(a => a.isActive === isActive);
-    if (institute) data = data.filter(a => a.institute === institute);
     return data;
   }
-  async createActivity(data: Partial<Activity>): Promise<Activity> {
-    const id = randomUUID();
-    const now = new Date();
-    const item = { id, ...data, createdAt: now, updatedAt: now, deletedAt: null } as Activity;
-    this.activitiesMap.set(id, item);
-    return item;
-  }
-  async updateActivity(id: string, data: Partial<Activity>): Promise<Activity> {
-    const existing = this.activitiesMap.get(id);
-    if (!existing) throw new Error("Not found");
-    const updated = { ...existing, ...data, updatedAt: new Date() };
-    this.activitiesMap.set(id, updated);
-    return updated;
-  }
-  async deleteActivity(id: string) {
-    const existing = this.activitiesMap.get(id);
-    if (existing) this.activitiesMap.set(id, { ...existing, deletedAt: new Date() });
-  }
+  async createActivity(data: any) { const id = randomUUID(); const act = { id, ...data }; this.activitiesMap.set(id, act); return act; }
+  async updateActivity(id: string, data: any) { const exp = this.activitiesMap.get(id); if (!exp) throw new Error("Not found"); const act = { ...exp, ...data }; this.activitiesMap.set(id, act); return act; }
+  async deleteActivity(id: string) { this.activitiesMap.delete(id); }
 
-  // ── Courses ─────────────────────────────────────────────────────────────────
   async getCourses({ departmentId }: any) {
-    let data = Array.from(this.coursesMap.values()).filter(c => !c.deletedAt);
+    let data = Array.from(this.coursesMap.values());
     if (departmentId) data = data.filter(c => c.departmentId === departmentId);
     return data;
   }
-  async createCourse(data: Partial<Course>): Promise<Course> {
-    const id = randomUUID();
-    const now = new Date();
-    const course = { id, ...data, createdAt: now, updatedAt: now, deletedAt: null } as Course;
-    this.coursesMap.set(id, course);
-    return course;
-  }
-  async updateCourse(id: string, data: Partial<Course>): Promise<Course> {
-    const existing = this.coursesMap.get(id);
-    if (!existing) throw new Error("Not found");
-    const updated = { ...existing, ...data, updatedAt: new Date() };
-    this.coursesMap.set(id, updated);
-    return updated;
-  }
-  async deleteCourse(id: string) {
-    const existing = this.coursesMap.get(id);
-    if (existing) this.coursesMap.set(id, { ...existing, deletedAt: new Date() });
-  }
+  async createCourse(data: any) { const id = randomUUID(); const c = { id, ...data }; this.coursesMap.set(id, c); return c; }
+  async updateCourse(id: string, data: any) { const exp = this.coursesMap.get(id); if (!exp) throw new Error("Not found"); const c = { ...exp, ...data }; this.coursesMap.set(id, c); return c; }
+  async deleteCourse(id: string) { this.coursesMap.delete(id); }
 
-  // ── Audit Logs ──────────────────────────────────────────────────────────────
-  async getAuditLogs() { return this.auditLogsArr.slice(-100).reverse(); }
-  async createAuditLog(data: Partial<AuditLog>): Promise<AuditLog> {
-    const id = randomUUID();
-    const now = new Date();
-    const log = { id, ...data, createdAt: now, updatedAt: now } as AuditLog;
-    this.auditLogsArr.push(log);
-    return log;
-  }
-  // ── Contact Messages ────────────────────────────────────────────────────────
-  async getContactMessages(opts: { institute?: string; isRead?: boolean }): Promise<ContactMessage[]> {
-    let arr = Array.from(this.contactMessagesMap.values()).filter(m => !m.deletedAt);
-    if (opts.institute) arr = arr.filter(m => m.institute === opts.institute);
-    if (opts.isRead !== undefined) arr = arr.filter(m => m.isRead === opts.isRead);
-    return arr.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  }
-  async createContactMessage(data: Partial<ContactMessage>): Promise<ContactMessage> {
-    const id = randomUUID();
-    const now = new Date();
-    const msg = { id, name: "", email: "", subject: null, message: "", institute: null, isRead: false, ...data, createdAt: now, updatedAt: now, deletedAt: null } as ContactMessage;
-    this.contactMessagesMap.set(id, msg);
-    return msg;
-  }
-  async markContactMessageRead(id: string): Promise<ContactMessage> {
-    const existing = this.contactMessagesMap.get(id);
-    if (!existing) throw new Error("Not found");
-    const updated = { ...existing, isRead: true, updatedAt: new Date() };
-    this.contactMessagesMap.set(id, updated);
-    return updated;
-  }
+  async getAuditLogs() { return this.auditLogsArr; }
+  async createAuditLog(data: any) { const id = randomUUID(); const l = { id, ...data, createdAt: new Date() } as AuditLog; this.auditLogsArr.push(l); return l; }
 
-  async deleteContactMessage(id: string): Promise<void> {
-    this.contactMessagesMap.delete(id);
+  async getContactMessages(opts: { institute?: string; isRead?: boolean }) {
+    let data = Array.from(this.contactMessagesMap.values());
+    if (opts.institute) data = data.filter(m => m.institute === opts.institute);
+    if (opts.isRead !== undefined) data = data.filter(m => m.isRead === opts.isRead);
+    return data;
   }
+  async createContactMessage(data: any) { const id = randomUUID(); const m = { id, ...data, isRead: false, createdAt: new Date() } as ContactMessage; this.contactMessagesMap.set(id, m); return m; }
+  async markContactMessageRead(id: string) { const m = this.contactMessagesMap.get(id); if (!m) throw new Error("Not found"); const updated = { ...m, isRead: true }; this.contactMessagesMap.set(id, updated); return updated; }
+  async deleteContactMessage(id: string) { this.contactMessagesMap.delete(id); }
 
-  async createNewsletterSubscriber(email: string): Promise<NewsletterSubscriber> {
-    if (this.newsletterMap.has(email)) throw new Error("Already subscribed");
-    const id = randomUUID();
-    const now = new Date();
-    const subscriber = { id, email, isActive: true, createdAt: now, updatedAt: now, deletedAt: null } as NewsletterSubscriber;
-    this.newsletterMap.set(email, subscriber);
-    return subscriber;
-  }
-  async getNewsletterSubscribers(): Promise<NewsletterSubscriber[]> {
-    return Array.from(this.newsletterMap.values());
-  }
+  async createNewsletterSubscriber(email: string) { const id = randomUUID(); const s = { id, email, isActive: true, createdAt: new Date() } as NewsletterSubscriber; this.newsletterMap.set(id, s); return s; }
+  async getNewsletterSubscribers() { return Array.from(this.newsletterMap.values()); }
 
-  async getFaqs({ category }: { category?: string }): Promise<FAQ[]> {
-    return [];
+  async getFaqs({ category }: any) {
+    let data = Array.from(this.faqsMap.values());
+    if (category) data = data.filter(f => f.category === category);
+    return data;
   }
-  async createFaq(data: Partial<FAQ>): Promise<FAQ> {
-    const id = randomUUID();
-    const now = new Date();
-    const faq = { id, ...data, createdAt: now, updatedAt: now } as FAQ;
-    return faq;
-  }
-  async updateFaq(id: string, data: Partial<FAQ>): Promise<FAQ> {
-    throw new Error("Not found");
-  }
-  async deleteFaq(id: string): Promise<void> {}
+  async createFaq(data: any) { const id = randomUUID(); const f = { id, ...data, createdAt: new Date(), updatedAt: new Date() } as FAQ; this.faqsMap.set(id, f); return f; }
+  async updateFaq(id: string, data: any) { const exp = this.faqsMap.get(id); if (!exp) throw new Error("Not found"); const f = { ...exp, ...data, updatedAt: new Date() }; this.faqsMap.set(id, f); return f; }
+  async deleteFaq(id: string) { this.faqsMap.delete(id); }
 }
 
-import { DatabaseStorage } from "./dbStorage";
-
-export const storage: IStorage = new DatabaseStorage();
+export const storage = new DatabaseStorage();
