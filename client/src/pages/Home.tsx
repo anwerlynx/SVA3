@@ -154,8 +154,10 @@ export default function Home() {
           ? "معاهد الوادي العليا - بوابة التعليم العالي المتميز"
           : "Valley Higher Institutes - Gateway to Distinguished Higher Education"}
       />
-      <Navbar />
-      <AnnouncementsBanner />
+      <div className="sticky top-0 z-50">
+        <AnnouncementsBanner />
+        <Navbar />
+      </div>
 
       {/* Hero Section */}
       <section className="relative w-full h-[100vh] min-h-[600px] flex items-center justify-center overflow-hidden">

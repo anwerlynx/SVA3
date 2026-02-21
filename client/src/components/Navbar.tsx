@@ -204,7 +204,8 @@ export function Navbar() {
 
   return (
     <nav
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${navBg}`}
+      className={`fixed left-0 right-0 z-50 transition-all duration-300 ${navBg}`}
+      style={{ top: scrolled ? '0px' : 'var(--announcement-height, 0px)' }}
       dir={direction}
     >
       <div className="max-w-[1440px] mx-auto px-4 md:px-8">
