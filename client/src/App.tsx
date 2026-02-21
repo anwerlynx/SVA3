@@ -11,6 +11,7 @@ import { ScrollToTop } from "@/components/ScrollToTop";
 import { BackToTop } from "@/components/BackToTop";
 import { lazy, Suspense } from "react";
 import { Loader2 } from "lucide-react";
+import { AnnouncementsBanner } from "@/components/AnnouncementsBanner";
 
 const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center bg-white dark:bg-neutral-950">
@@ -281,6 +282,7 @@ function Router() {
 
   return (
     <LanguageProvider>
+      <AnnouncementsBanner />
       <ScrollToTop />
       <PublicRouter />
       <BackToTop />
