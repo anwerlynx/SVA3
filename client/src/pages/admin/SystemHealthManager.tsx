@@ -1,6 +1,6 @@
 import { AdminLayout } from "./AdminLayout";
 import { motion } from "framer-motion";
-import { useAdminAuth } from "@/hooks/useAdminAuth";
+import { useAdminAuth } from "@/context/AdminAuthContext";
 import { useState, useEffect, useCallback } from "react";
 import {
   Database, Server, HardDrive, Activity, Clock, Users,
