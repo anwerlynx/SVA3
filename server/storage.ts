@@ -1,16 +1,11 @@
-import { db } from "./db";
-import { sql, eq, desc, and, ilike, or } from "drizzle-orm";
-import {
-  users, adminUsers, faculty, departments, news, events,
-  pages, media, libraryResources, research, announcements,
-  settings, activities, courses, auditLogs, contactMessages,
-  newsletterSubscribers, faqs
-} from "@shared/schema";
+import { randomUUID } from "crypto";
+import bcrypt from "bcryptjs";
 import type {
   User, InsertUser, AdminUser, Department, Faculty, News, Event,
   Page, Media, LibraryResource, Research, Announcement, Setting,
   Activity, Course, AuditLog, ContactMessage, NewsletterSubscriber, FAQ
 } from "@shared/schema";
+import { DatabaseStorage } from "./dbStorage";
 
 // ─── Interfaces ───────────────────────────────────────────────────────────────
 export interface IStorage {
@@ -126,17 +121,94 @@ export interface IStorage {
   deleteFaq(id: string): Promise<void>;
 }
 
-// ─── Database Storage ────────────────────────────────────────────────────────
-export class DatabaseStorage implements IStorage {
-  // Auth
-  async getUser(id: string) {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user;
+// ─── In-Memory Storage (dev mode — replace with DB in production) ─────────────
+export class MemStorage implements IStorage {
+  private users = new Map<string, User>();
+  private adminUsers = new Map<string, AdminUser>();
+  private facultyMap = new Map<string, Faculty>();
+  private departmentsMap = new Map<string, Department>();
+  private newsMap = new Map<string, News>();
+  private eventsMap = new Map<string, Event>();
+  private pagesMap = new Map<string, Page>();
+  private mediaMap = new Map<string, Media>();
+  private libraryMap = new Map<string, LibraryResource>();
+  private researchMap = new Map<string, Research>();
+  private announcementsMap = new Map<string, Announcement>();
+  private settingsMap = new Map<string, Setting>();
+  private activitiesMap = new Map<string, Activity>();
+  private coursesMap = new Map<string, Course>();
+  private auditLogsArr: AuditLog[] = [];
+  private contactMessagesMap = new Map<string, ContactMessage>();
+  private newsletterMap = new Map<string, NewsletterSubscriber>();
+
+  constructor() {
+    this._seed();
   }
-  async getUserByUsername(username: string) {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
-    return user;
+
+  private _seed() {
+    const now = new Date();
+
+    // Seed admin
+    const adminId = randomUUID();
+    this.adminUsers.set(adminId, {
+      id: adminId, name: "Super Admin", email: "admin@sva.edu.eg",
+      passwordHash: bcrypt.hashSync("admin123", 10), role: "super_admin", isActive: true,
+      lastLoginAt: null, avatarUrl: null, createdAt: now, updatedAt: now, deletedAt: null
+    });
+
+    // Seed departments
+    const depts = [
+      { nameAr: "هندسة مدنية", nameEn: "Civil Engineering", institute: "engineering", slug: "civil-engineering" },
+      { nameAr: "هندسة كهربائية", nameEn: "Electrical Engineering", institute: "engineering", slug: "electrical-engineering" },
+      { nameAr: "هندسة معمارية", nameEn: "Architecture", institute: "engineering", slug: "architecture" },
+      { nameAr: "محاسبة", nameEn: "Accounting", institute: "management", slug: "accounting" },
+      { nameAr: "إدارة أعمال", nameEn: "Business Administration", institute: "management", slug: "business-administration" },
+      { nameAr: "نظم المعلومات", nameEn: "Management Information Systems", institute: "management", slug: "mis" },
+    ];
+    depts.forEach(d => {
+      const id = randomUUID();
+      this.departmentsMap.set(id, { id, ...d, descriptionAr: null, descriptionEn: null, headFacultyId: null, iconName: null, coverImage: null, isActive: true, sortOrder: 0, createdAt: now, updatedAt: now, deletedAt: null } as any);
+    });
+
+    // Seed news
+    const newsItems = [
+      { titleAr: "مشاركة معاهدنا كراع للمؤتمر الدولى التاسع", titleEn: "Our Institutes Sponsor the 9th International Conference", slug: "9th-international-conference", category: "Conferences", status: "published", isFeatured: true },
+      { titleAr: "صور تكريم الطلبة من العميد", titleEn: "Dean Honors Outstanding Students", slug: "dean-honors-students", category: "Honors", status: "published", isFeatured: false },
+      { titleAr: "مؤتمر المرأه في العلوم", titleEn: "Women in Science Conference", slug: "women-in-science", category: "Conferences", status: "published", isFeatured: false },
+    ];
+    newsItems.forEach(n => {
+      const id = randomUUID();
+      this.newsMap.set(id, { id, ...n, contentAr: null, contentEn: null, excerptAr: null, excerptEn: null, coverImage: "/figmaAssets/rectangle-10.png", tags: [], institute: null, publishedAt: now, scheduledAt: null, viewCount: Math.floor(Math.random() * 1000), authorId: adminId, metaTitle: null, metaDescription: null, createdAt: now, updatedAt: now, deletedAt: null } as any);
+    });
+
+    // Seed announcements
+    const ann = [
+      { titleAr: "بدء التسجيل للفصل الدراسي الجديد", titleEn: "New Semester Registration Open", type: "academic", isActive: true },
+      { titleAr: "موعد امتحانات نهاية الفصل", titleEn: "Final Exam Schedule Released", type: "urgent", isActive: true },
+    ];
+    ann.forEach(a => {
+      const id = randomUUID();
+      this.announcementsMap.set(id, { id, ...a, contentAr: null, contentEn: null, institute: null, expiresAt: null, createdAt: now, updatedAt: now, deletedAt: null } as any);
+    });
+
+    // Seed settings
+    const defaultSettings = [
+      { key: "site_title_ar", value: "معاهد الوادي العليا", group: "general" },
+      { key: "site_title_en", value: "Valley Higher Institutes", group: "general" },
+      { key: "contact_email", value: "info@sva.edu.eg", group: "contact" },
+      { key: "contact_phone", value: "+20 123 456 7890", group: "contact" },
+      { key: "google_analytics_id", value: "", group: "seo" },
+      { key: "maintenance_mode", value: false, group: "system" },
+    ];
+    defaultSettings.forEach(s => {
+      const id = randomUUID();
+      this.settingsMap.set(s.key, { id, ...s, createdAt: now, updatedAt: now } as any);
+    });
   }
+
+  // ── Auth ────────────────────────────────────────────────────────────────────
+  async getUser(id: string) { return this.users.get(id); }
+  async getUserByUsername(username: string) { return Array.from(this.users.values()).find(u => u.username === username); }
   async createUser(data: InsertUser): Promise<User> {
     const [user] = await db.insert(users).values(data).returning();
     return user;
@@ -149,7 +221,7 @@ export class DatabaseStorage implements IStorage {
     await db.update(adminUsers).set({ lastLoginAt: new Date() }).where(eq(adminUsers.id, id));
   }
 
-  // Dashboard
+  // ── Dashboard ───────────────────────────────────────────────────────────────
   async getDashboardStats() {
     const [facultyCount] = await db.select({ count: sql<number>`count(*)` }).from(faculty);
     const [deptCount] = await db.select({ count: sql<number>`count(*)` }).from(departments);
@@ -159,342 +231,399 @@ export class DatabaseStorage implements IStorage {
     const [announcementCount] = await db.select({ count: sql<number>`count(*)` }).from(announcements);
 
     return {
-      totalFaculty: Number(facultyCount.count),
-      totalDepartments: Number(deptCount.count),
-      totalNews: Number(newsCount.count),
-      totalEvents: Number(eventCount.count),
-      totalContacts: Number(contactCount.count),
-      totalAnnouncements: Number(announcementCount.count),
+      totalFaculty: this.facultyMap.size,
+      totalDepartments: this.departmentsMap.size,
+      totalNews: this.newsMap.size,
+      publishedNews: Array.from(this.newsMap.values()).filter(n => n.status === "published").length,
+      totalEvents: this.eventsMap.size,
+      totalContacts: this.contactMessagesMap.size,
+      totalMedia: this.mediaMap.size,
+      totalLibrary: this.libraryMap.size,
+      totalUsers: this.adminUsers.size,
+      totalAnnouncements: this.announcementsMap.size,
     };
   }
 
-  // Admin Users
-  async getAdminUsers() {
-    return db.select().from(adminUsers);
-  }
-  async createAdminUser(data: any): Promise<AdminUser> {
-    const [user] = await db.insert(adminUsers).values(data).returning();
+  // ── Admin Users ─────────────────────────────────────────────────────────────
+  async getAdminUsers() { return Array.from(this.adminUsers.values()).filter(u => !u.deletedAt); }
+  async createAdminUser(data: Partial<AdminUser>): Promise<AdminUser> {
+    const id = randomUUID();
+    const now = new Date();
+    const user = { id, ...data, createdAt: now, updatedAt: now, deletedAt: null } as AdminUser;
+    this.adminUsers.set(id, user);
     return user;
   }
-  async updateAdminUser(id: string, data: any): Promise<AdminUser> {
-    const [user] = await db.update(adminUsers).set(data).where(eq(adminUsers.id, id)).returning();
-    return user;
+  async updateAdminUser(id: string, data: Partial<AdminUser>): Promise<AdminUser> {
+    const existing = this.adminUsers.get(id);
+    if (!existing) throw new Error("Not found");
+    const updated = { ...existing, ...data, updatedAt: new Date() };
+    this.adminUsers.set(id, updated);
+    return updated;
   }
   async deleteAdminUser(id: string) {
-    await db.delete(adminUsers).where(eq(adminUsers.id, id));
+    const existing = this.adminUsers.get(id);
+    if (existing) this.adminUsers.set(id, { ...existing, deletedAt: new Date() });
   }
 
-  // Faculty
+  // ── Faculty ─────────────────────────────────────────────────────────────────
   async getFaculty({ search, department, institute, page = 1, limit = 20 }: any) {
-    const filters = [];
-    if (search) filters.push(or(ilike(faculty.nameEn, `%${search}%`), ilike(faculty.nameAr, `%${search}%`)));
-    if (department) filters.push(eq(faculty.departmentId, department));
-    if (institute) filters.push(eq(faculty.institute, institute));
-    
-    const whereClause = filters.length > 0 ? and(...filters) : undefined;
-    const data = await db.select().from(faculty).where(whereClause).limit(limit).offset((page - 1) * limit);
-    const [countResult] = await db.select({ count: sql<number>`count(*)` }).from(faculty).where(whereClause);
-    return { data, total: Number(countResult.count) };
+    let data = Array.from(this.facultyMap.values()).filter(f => !f.deletedAt);
+    if (search) data = data.filter(f => f.nameEn?.toLowerCase().includes(search.toLowerCase()) || f.nameAr?.includes(search));
+    if (department) data = data.filter(f => f.departmentId === department);
+    if (institute) data = data.filter(f => f.institute === institute);
+    const total = data.length;
+    data = data.slice((page - 1) * limit, page * limit);
+    return { data, total };
   }
-  async getFacultyById(id: string) {
-    const [member] = await db.select().from(faculty).where(eq(faculty.id, id));
+  async getFacultyById(id: string) { return this.facultyMap.get(id); }
+  async createFaculty(data: Partial<Faculty>): Promise<Faculty> {
+    const id = randomUUID();
+    const now = new Date();
+    const member = { id, ...data, createdAt: now, updatedAt: now, deletedAt: null } as Faculty;
+    this.facultyMap.set(id, member);
     return member;
   }
-  async createFaculty(data: any): Promise<Faculty> {
-    const [member] = await db.insert(faculty).values(data).returning();
-    return member;
-  }
-  async updateFaculty(id: string, data: any): Promise<Faculty> {
-    const [member] = await db.update(faculty).set(data).where(eq(faculty.id, id)).returning();
-    return member;
+  async updateFaculty(id: string, data: Partial<Faculty>): Promise<Faculty> {
+    const existing = this.facultyMap.get(id);
+    if (!existing) throw new Error("Not found");
+    const updated = { ...existing, ...data, updatedAt: new Date() };
+    this.facultyMap.set(id, updated);
+    return updated;
   }
   async deleteFaculty(id: string) {
-    await db.delete(faculty).where(eq(faculty.id, id));
+    const existing = this.facultyMap.get(id);
+    if (existing) this.facultyMap.set(id, { ...existing, deletedAt: new Date() });
   }
 
-  // Departments
-  async getDepartments() {
-    return db.select().from(departments);
-  }
-  async getDepartmentById(id: string) {
-    const [dept] = await db.select().from(departments).where(eq(departments.id, id));
+  // ── Departments ─────────────────────────────────────────────────────────────
+  async getDepartments() { return Array.from(this.departmentsMap.values()).filter(d => !d.deletedAt); }
+  async getDepartmentById(id: string) { return this.departmentsMap.get(id); }
+  async createDepartment(data: Partial<Department>): Promise<Department> {
+    const id = randomUUID();
+    const now = new Date();
+    const dept = { id, ...data, createdAt: now, updatedAt: now, deletedAt: null } as Department;
+    this.departmentsMap.set(id, dept);
     return dept;
   }
-  async createDepartment(data: any): Promise<Department> {
-    const [dept] = await db.insert(departments).values(data).returning();
-    return dept;
-  }
-  async updateDepartment(id: string, data: any): Promise<Department> {
-    const [dept] = await db.update(departments).set(data).where(eq(departments.id, id)).returning();
-    return dept;
+  async updateDepartment(id: string, data: Partial<Department>): Promise<Department> {
+    const existing = this.departmentsMap.get(id);
+    if (!existing) throw new Error("Not found");
+    const updated = { ...existing, ...data, updatedAt: new Date() };
+    this.departmentsMap.set(id, updated);
+    return updated;
   }
   async deleteDepartment(id: string) {
-    await db.delete(departments).where(eq(departments.id, id));
+    const existing = this.departmentsMap.get(id);
+    if (existing) this.departmentsMap.set(id, { ...existing, deletedAt: new Date() });
   }
 
-  // News
+  // ── News ────────────────────────────────────────────────────────────────────
   async getNews({ search, category, status, institute, page = 1, limit = 20 }: any) {
-    const filters = [];
-    if (search) filters.push(or(ilike(news.titleEn, `%${search}%`), ilike(news.titleAr, `%${search}%`)));
-    if (category) filters.push(eq(news.category, category));
-    if (status) filters.push(eq(news.status, status));
-    if (institute) filters.push(eq(news.institute, institute));
-    
-    const whereClause = filters.length > 0 ? and(...filters) : undefined;
-    const data = await db.select().from(news).where(whereClause).limit(limit).offset((page - 1) * limit).orderBy(desc(news.publishedAt));
-    const [countResult] = await db.select({ count: sql<number>`count(*)` }).from(news).where(whereClause);
-    return { data, total: Number(countResult.count) };
+    let data = Array.from(this.newsMap.values()).filter(n => !n.deletedAt);
+    if (search) data = data.filter(n => n.titleEn?.toLowerCase().includes(search.toLowerCase()) || n.titleAr?.includes(search));
+    if (category) data = data.filter(n => n.category === category);
+    if (status) data = data.filter(n => n.status === status);
+    if (institute) data = data.filter(n => n.institute === institute);
+    const total = data.length;
+    data = data.slice((page - 1) * limit, page * limit);
+    return { data, total };
   }
-  async getNewsById(id: string) {
-    const [article] = await db.select().from(news).where(eq(news.id, id));
+  async getNewsById(id: string) { return this.newsMap.get(id); }
+  async getNewsBySlug(slug: string) { return Array.from(this.newsMap.values()).find(n => n.slug === slug); }
+  async createNews(data: Partial<News>): Promise<News> {
+    const id = randomUUID();
+    const now = new Date();
+    const article = { id, ...data, createdAt: now, updatedAt: now, deletedAt: null } as News;
+    this.newsMap.set(id, article);
     return article;
   }
-  async getNewsBySlug(slug: string) {
-    const [article] = await db.select().from(news).where(eq(news.slug, slug));
-    return article;
-  }
-  async createNews(data: any): Promise<News> {
-    const [article] = await db.insert(news).values(data).returning();
-    return article;
-  }
-  async updateNews(id: string, data: any): Promise<News> {
-    const [article] = await db.update(news).set(data).where(eq(news.id, id)).returning();
-    return article;
+  async updateNews(id: string, data: Partial<News>): Promise<News> {
+    const existing = this.newsMap.get(id);
+    if (!existing) throw new Error("Not found");
+    const updated = { ...existing, ...data, updatedAt: new Date() };
+    this.newsMap.set(id, updated);
+    return updated;
   }
   async deleteNews(id: string) {
-    await db.delete(news).where(eq(news.id, id));
+    const existing = this.newsMap.get(id);
+    if (existing) this.newsMap.set(id, { ...existing, deletedAt: new Date() });
   }
 
-  // Events
+  // ── Events ──────────────────────────────────────────────────────────────────
   async getEvents({ status }: any) {
-    const filters = [];
-    if (status) filters.push(eq(events.status, status));
-    const whereClause = filters.length > 0 ? and(...filters) : undefined;
-    return db.select().from(events).where(whereClause).orderBy(desc(events.startDate));
+    let data = Array.from(this.eventsMap.values()).filter(e => !e.deletedAt);
+    if (status) data = data.filter(e => e.status === status);
+    return data;
   }
-  async createEvent(data: any): Promise<Event> {
-    const [event] = await db.insert(events).values(data).returning();
+  async createEvent(data: Partial<Event>): Promise<Event> {
+    const id = randomUUID();
+    const now = new Date();
+    const event = { id, ...data, createdAt: now, updatedAt: now, deletedAt: null } as Event;
+    this.eventsMap.set(id, event);
     return event;
   }
-  async updateEvent(id: string, data: any): Promise<Event> {
-    const [event] = await db.update(events).set(data).where(eq(events.id, id)).returning();
-    return event;
+  async updateEvent(id: string, data: Partial<Event>): Promise<Event> {
+    const existing = this.eventsMap.get(id);
+    if (!existing) throw new Error("Not found");
+    const updated = { ...existing, ...data, updatedAt: new Date() };
+    this.eventsMap.set(id, updated);
+    return updated;
   }
   async deleteEvent(id: string) {
-    await db.delete(events).where(eq(events.id, id));
+    const existing = this.eventsMap.get(id);
+    if (existing) this.eventsMap.set(id, { ...existing, deletedAt: new Date() });
   }
 
-  // Pages
-  async getPages() {
-    return db.select().from(pages);
-  }
-  async getPageById(id: string) {
-    const [page] = await db.select().from(pages).where(eq(pages.id, id));
+  // ── Pages ───────────────────────────────────────────────────────────────────
+  async getPages() { return Array.from(this.pagesMap.values()).filter(p => !p.deletedAt); }
+  async getPageById(id: string) { return this.pagesMap.get(id); }
+  async getPageBySlug(slug: string) { return Array.from(this.pagesMap.values()).find(p => p.slug === slug); }
+  async createPage(data: Partial<Page>): Promise<Page> {
+    const id = randomUUID();
+    const now = new Date();
+    const page = { id, ...data, createdAt: now, updatedAt: now, deletedAt: null } as Page;
+    this.pagesMap.set(id, page);
     return page;
   }
-  async getPageBySlug(slug: string) {
-    const [page] = await db.select().from(pages).where(eq(pages.slug, slug));
-    return page;
-  }
-  async createPage(data: any): Promise<Page> {
-    const [page] = await db.insert(pages).values(data).returning();
-    return page;
-  }
-  async updatePage(id: string, data: any): Promise<Page> {
-    const [page] = await db.update(pages).set(data).where(eq(pages.id, id)).returning();
-    return page;
+  async updatePage(id: string, data: Partial<Page>): Promise<Page> {
+    const existing = this.pagesMap.get(id);
+    if (!existing) throw new Error("Not found");
+    const updated = { ...existing, ...data, updatedAt: new Date() };
+    this.pagesMap.set(id, updated);
+    return updated;
   }
   async deletePage(id: string) {
-    await db.delete(pages).where(eq(pages.id, id));
+    const existing = this.pagesMap.get(id);
+    if (existing) this.pagesMap.set(id, { ...existing, deletedAt: new Date() });
   }
 
-  // Media
+  // ── Media ───────────────────────────────────────────────────────────────────
   async getMedia({ folder, search }: any) {
-    const filters = [];
-    if (folder) filters.push(eq(media.folder, folder));
-    if (search) filters.push(ilike(media.originalName, `%${search}%`));
-    const whereClause = filters.length > 0 ? and(...filters) : undefined;
-    return db.select().from(media).where(whereClause).orderBy(desc(media.createdAt));
+    let data = Array.from(this.mediaMap.values()).filter(m => !m.deletedAt);
+    if (folder) data = data.filter(m => m.folder === folder);
+    if (search) data = data.filter(m => m.originalName.toLowerCase().includes(search.toLowerCase()));
+    return data;
   }
-  async createMedia(data: any): Promise<Media> {
-    const [file] = await db.insert(media).values(data).returning();
+  async createMedia(data: Partial<Media>): Promise<Media> {
+    const id = randomUUID();
+    const now = new Date();
+    const file = { id, ...data, createdAt: now, updatedAt: now, deletedAt: null } as Media;
+    this.mediaMap.set(id, file);
     return file;
   }
   async deleteMedia(id: string) {
-    await db.delete(media).where(eq(media.id, id));
+    const existing = this.mediaMap.get(id);
+    if (existing) this.mediaMap.set(id, { ...existing, deletedAt: new Date() });
   }
 
-  // Library
+  // ── Library ─────────────────────────────────────────────────────────────────
   async getLibraryResources({ type, institute, isAvailable }: any) {
-    const filters = [];
-    if (type) filters.push(eq(libraryResources.type, type));
-    if (institute) filters.push(eq(libraryResources.institute, institute));
-    if (isAvailable !== undefined) filters.push(eq(libraryResources.isAvailable, isAvailable));
-    const whereClause = filters.length > 0 ? and(...filters) : undefined;
-    return db.select().from(libraryResources).where(whereClause);
+    let data = Array.from(this.libraryMap.values()).filter(r => !r.deletedAt);
+    if (type) data = data.filter(r => r.type === type);
+    if (institute) data = data.filter(r => r.institute === institute);
+    if (isAvailable !== undefined) data = data.filter(r => r.isAvailable === isAvailable);
+    return data;
   }
-  async createLibraryResource(data: any): Promise<LibraryResource> {
-    const [res] = await db.insert(libraryResources).values(data).returning();
-    return res;
+  async createLibraryResource(data: Partial<LibraryResource>): Promise<LibraryResource> {
+    const id = randomUUID();
+    const now = new Date();
+    const resource = { id, ...data, createdAt: now, updatedAt: now, deletedAt: null } as LibraryResource;
+    this.libraryMap.set(id, resource);
+    return resource;
   }
-  async updateLibraryResource(id: string, data: any): Promise<LibraryResource> {
-    const [res] = await db.update(libraryResources).set(data).where(eq(libraryResources.id, id)).returning();
-    return res;
+  async updateLibraryResource(id: string, data: Partial<LibraryResource>): Promise<LibraryResource> {
+    const existing = this.libraryMap.get(id);
+    if (!existing) throw new Error("Not found");
+    const updated = { ...existing, ...data, updatedAt: new Date() };
+    this.libraryMap.set(id, updated);
+    return updated;
   }
   async deleteLibraryResource(id: string) {
-    await db.delete(libraryResources).where(eq(libraryResources.id, id));
+    const existing = this.libraryMap.get(id);
+    if (existing) this.libraryMap.set(id, { ...existing, deletedAt: new Date() });
   }
 
-  // Research
+  // ── Research ────────────────────────────────────────────────────────────────
   async getResearch({ status, institute }: any) {
-    const filters = [];
-    if (status) filters.push(eq(research.status, status));
-    if (institute) filters.push(eq(research.institute, institute));
-    const whereClause = filters.length > 0 ? and(...filters) : undefined;
-    return db.select().from(research).where(whereClause);
+    let data = Array.from(this.researchMap.values()).filter(r => !r.deletedAt);
+    if (status) data = data.filter(r => r.status === status);
+    if (institute) data = data.filter(r => r.institute === institute);
+    return data;
   }
-  async createResearch(data: any): Promise<Research> {
-    const [res] = await db.insert(research).values(data).returning();
-    return res;
+  async createResearch(data: Partial<Research>): Promise<Research> {
+    const id = randomUUID();
+    const now = new Date();
+    const item = { id, ...data, createdAt: now, updatedAt: now, deletedAt: null } as Research;
+    this.researchMap.set(id, item);
+    return item;
   }
-  async updateResearch(id: string, data: any): Promise<Research> {
-    const [res] = await db.update(research).set(data).where(eq(research.id, id)).returning();
-    return res;
+  async updateResearch(id: string, data: Partial<Research>): Promise<Research> {
+    const existing = this.researchMap.get(id);
+    if (!existing) throw new Error("Not found");
+    const updated = { ...existing, ...data, updatedAt: new Date() };
+    this.researchMap.set(id, updated);
+    return updated;
   }
   async deleteResearch(id: string) {
-    await db.delete(research).where(eq(research.id, id));
+    const existing = this.researchMap.get(id);
+    if (existing) this.researchMap.set(id, { ...existing, deletedAt: new Date() });
   }
 
-  // Announcements
+  // ── Announcements ───────────────────────────────────────────────────────────
   async getAnnouncements({ isActive, institute }: any) {
-    const filters = [];
-    if (isActive !== undefined) filters.push(eq(announcements.isActive, isActive));
-    if (institute) filters.push(eq(announcements.institute, institute));
-    const whereClause = filters.length > 0 ? and(...filters) : undefined;
-    return db.select().from(announcements).where(whereClause).orderBy(desc(announcements.createdAt));
+    let data = Array.from(this.announcementsMap.values()).filter(a => !a.deletedAt);
+    if (isActive !== undefined) data = data.filter(a => a.isActive === isActive);
+    if (institute) data = data.filter(a => a.institute === institute);
+    return data;
   }
-  async createAnnouncement(data: any): Promise<Announcement> {
-    const [ann] = await db.insert(announcements).values(data).returning();
-    return ann;
+  async createAnnouncement(data: Partial<Announcement>): Promise<Announcement> {
+    const id = randomUUID();
+    const now = new Date();
+    const item = { id, ...data, createdAt: now, updatedAt: now, deletedAt: null } as Announcement;
+    this.announcementsMap.set(id, item);
+    return item;
   }
-  async updateAnnouncement(id: string, data: any): Promise<Announcement> {
-    const [ann] = await db.update(announcements).set(data).where(eq(announcements.id, id)).returning();
-    return ann;
+  async updateAnnouncement(id: string, data: Partial<Announcement>): Promise<Announcement> {
+    const existing = this.announcementsMap.get(id);
+    if (!existing) throw new Error("Not found");
+    const updated = { ...existing, ...data, updatedAt: new Date() };
+    this.announcementsMap.set(id, updated);
+    return updated;
   }
   async deleteAnnouncement(id: string) {
-    await db.delete(announcements).where(eq(announcements.id, id));
+    const existing = this.announcementsMap.get(id);
+    if (existing) this.announcementsMap.set(id, { ...existing, deletedAt: new Date() });
   }
 
-  // Settings
-  async getAllSettings() {
-    return db.select().from(settings);
-  }
-  async upsertSetting(key: string, value: any, group = "general") {
-    const [existing] = await db.select().from(settings).where(eq(settings.key, key));
+  // ── Settings ────────────────────────────────────────────────────────────────
+  async getAllSettings() { return Array.from(this.settingsMap.values()); }
+  async upsertSetting(key: string, value: any, group = "general"): Promise<Setting> {
+    const existing = this.settingsMap.get(key);
+    const now = new Date();
     if (existing) {
-      const [updated] = await db.update(settings).set({ value, group, updatedAt: new Date() }).where(eq(settings.key, key)).returning();
+      const updated = { ...existing, value, updatedAt: now };
+      this.settingsMap.set(key, updated);
       return updated;
-    } else {
-      const [created] = await db.insert(settings).values({ key, value, group }).returning();
-      return created;
     }
+    const id = randomUUID();
+    const setting = { id, key, value, group, createdAt: now, updatedAt: now } as Setting;
+    this.settingsMap.set(key, setting);
+    return setting;
   }
 
-  // Activities
+  // ── Activities ──────────────────────────────────────────────────────────────
   async getActivities({ isActive, institute }: any) {
-    const filters = [];
-    if (isActive !== undefined) filters.push(eq(activities.isActive, isActive));
-    if (institute) filters.push(eq(activities.institute, institute));
-    const whereClause = filters.length > 0 ? and(...filters) : undefined;
-    return db.select().from(activities).where(whereClause);
+    let data = Array.from(this.activitiesMap.values()).filter(a => !a.deletedAt);
+    if (isActive !== undefined) data = data.filter(a => a.isActive === isActive);
+    if (institute) data = data.filter(a => a.institute === institute);
+    return data;
   }
-  async createActivity(data: any): Promise<Activity> {
-    const [act] = await db.insert(activities).values(data).returning();
-    return act;
+  async createActivity(data: Partial<Activity>): Promise<Activity> {
+    const id = randomUUID();
+    const now = new Date();
+    const item = { id, ...data, createdAt: now, updatedAt: now, deletedAt: null } as Activity;
+    this.activitiesMap.set(id, item);
+    return item;
   }
-  async updateActivity(id: string, data: any): Promise<Activity> {
-    const [act] = await db.update(activities).set(data).where(eq(activities.id, id)).returning();
-    return act;
+  async updateActivity(id: string, data: Partial<Activity>): Promise<Activity> {
+    const existing = this.activitiesMap.get(id);
+    if (!existing) throw new Error("Not found");
+    const updated = { ...existing, ...data, updatedAt: new Date() };
+    this.activitiesMap.set(id, updated);
+    return updated;
   }
   async deleteActivity(id: string) {
-    await db.delete(activities).where(eq(activities.id, id));
+    const existing = this.activitiesMap.get(id);
+    if (existing) this.activitiesMap.set(id, { ...existing, deletedAt: new Date() });
   }
 
-  // Courses
-  async getCourses({ departmentId }: any = {}) {
-    const filters = [];
-    if (departmentId) filters.push(eq(courses.departmentId, departmentId));
-    const whereClause = filters.length > 0 ? and(...filters) : undefined;
-    return db.select().from(courses).where(whereClause);
+  // ── Courses ─────────────────────────────────────────────────────────────────
+  async getCourses({ departmentId }: any) {
+    let data = Array.from(this.coursesMap.values()).filter(c => !c.deletedAt);
+    if (departmentId) data = data.filter(c => c.departmentId === departmentId);
+    return data;
   }
-  async createCourse(data: any): Promise<Course> {
-    const [course] = await db.insert(courses).values(data).returning();
+  async createCourse(data: Partial<Course>): Promise<Course> {
+    const id = randomUUID();
+    const now = new Date();
+    const course = { id, ...data, createdAt: now, updatedAt: now, deletedAt: null } as Course;
+    this.coursesMap.set(id, course);
     return course;
   }
-  async updateCourse(id: string, data: any): Promise<Course> {
-    const [course] = await db.update(courses).set(data).where(eq(courses.id, id)).returning();
-    return course;
+  async updateCourse(id: string, data: Partial<Course>): Promise<Course> {
+    const existing = this.coursesMap.get(id);
+    if (!existing) throw new Error("Not found");
+    const updated = { ...existing, ...data, updatedAt: new Date() };
+    this.coursesMap.set(id, updated);
+    return updated;
   }
   async deleteCourse(id: string) {
-    await db.delete(courses).where(eq(courses.id, id));
+    const existing = this.coursesMap.get(id);
+    if (existing) this.coursesMap.set(id, { ...existing, deletedAt: new Date() });
   }
 
-  // Audit Logs
-  async getAuditLogs() {
-    return db.select().from(auditLogs).orderBy(desc(auditLogs.createdAt)).limit(100);
-  }
-  async createAuditLog(data: any): Promise<AuditLog> {
-    const [log] = await db.insert(auditLogs).values(data).returning();
+  // ── Audit Logs ──────────────────────────────────────────────────────────────
+  async getAuditLogs() { return this.auditLogsArr.slice(-100).reverse(); }
+  async createAuditLog(data: Partial<AuditLog>): Promise<AuditLog> {
+    const id = randomUUID();
+    const now = new Date();
+    const log = { id, ...data, createdAt: now, updatedAt: now } as AuditLog;
+    this.auditLogsArr.push(log);
     return log;
   }
-
-  // Contact Messages
-  async getContactMessages({ institute, isRead }: any) {
-    const filters = [];
-    if (institute) filters.push(eq(contactMessages.institute, institute));
-    if (isRead !== undefined) filters.push(eq(contactMessages.isRead, isRead));
-    const whereClause = filters.length > 0 ? and(...filters) : undefined;
-    return db.select().from(contactMessages).where(whereClause).orderBy(desc(contactMessages.createdAt));
+  // ── Contact Messages ────────────────────────────────────────────────────────
+  async getContactMessages(opts: { institute?: string; isRead?: boolean }): Promise<ContactMessage[]> {
+    let arr = Array.from(this.contactMessagesMap.values()).filter(m => !m.deletedAt);
+    if (opts.institute) arr = arr.filter(m => m.institute === opts.institute);
+    if (opts.isRead !== undefined) arr = arr.filter(m => m.isRead === opts.isRead);
+    return arr.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }
-  async createContactMessage(data: any): Promise<ContactMessage> {
-    const [msg] = await db.insert(contactMessages).values(data).returning();
+  async createContactMessage(data: Partial<ContactMessage>): Promise<ContactMessage> {
+    const id = randomUUID();
+    const now = new Date();
+    const msg = { id, name: "", email: "", subject: null, message: "", institute: null, isRead: false, ...data, createdAt: now, updatedAt: now, deletedAt: null } as ContactMessage;
+    this.contactMessagesMap.set(id, msg);
     return msg;
   }
-  async markContactMessageRead(id: string) {
-    const [msg] = await db.update(contactMessages).set({ isRead: true }).where(eq(contactMessages.id, id)).returning();
-    return msg;
-  }
-  async deleteContactMessage(id: string) {
-    await db.delete(contactMessages).where(eq(contactMessages.id, id));
+  async markContactMessageRead(id: string): Promise<ContactMessage> {
+    const existing = this.contactMessagesMap.get(id);
+    if (!existing) throw new Error("Not found");
+    const updated = { ...existing, isRead: true, updatedAt: new Date() };
+    this.contactMessagesMap.set(id, updated);
+    return updated;
   }
 
-  // Newsletter
+  async deleteContactMessage(id: string): Promise<void> {
+    this.contactMessagesMap.delete(id);
+  }
+
   async createNewsletterSubscriber(email: string): Promise<NewsletterSubscriber> {
-    const [sub] = await db.insert(newsletterSubscribers).values({ email }).returning();
-    return sub;
+    if (this.newsletterMap.has(email)) throw new Error("Already subscribed");
+    const id = randomUUID();
+    const now = new Date();
+    const subscriber = { id, email, isActive: true, createdAt: now, updatedAt: now, deletedAt: null } as NewsletterSubscriber;
+    this.newsletterMap.set(email, subscriber);
+    return subscriber;
   }
-  async getNewsletterSubscribers() {
-    return db.select().from(newsletterSubscribers).where(eq(newsletterSubscribers.isActive, true));
+  async getNewsletterSubscribers(): Promise<NewsletterSubscriber[]> {
+    return Array.from(this.newsletterMap.values());
   }
 
-  // FAQs
-  async getFaqs({ category }: any) {
-    const filters = [];
-    if (category) filters.push(eq(faqs.category, category));
-    const whereClause = filters.length > 0 ? and(...filters) : undefined;
-    return db.select().from(faqs).where(whereClause).orderBy(faqs.sortOrder);
+  async getFaqs({ category }: { category?: string }): Promise<FAQ[]> {
+    return [];
   }
-  async createFaq(data: any): Promise<FAQ> {
-    const [faq] = await db.insert(faqs).values(data).returning();
+  async createFaq(data: Partial<FAQ>): Promise<FAQ> {
+    const id = randomUUID();
+    const now = new Date();
+    const faq = { id, ...data, createdAt: now, updatedAt: now } as FAQ;
     return faq;
   }
-  async updateFaq(id: string, data: any): Promise<FAQ> {
-    const [faq] = await db.update(faqs).set(data).where(eq(faqs.id, id)).returning();
-    return faq;
+  async updateFaq(id: string, data: Partial<FAQ>): Promise<FAQ> {
+    throw new Error("Not found");
   }
-  async deleteFaq(id: string) {
-    await db.delete(faqs).where(eq(faqs.id, id));
-  }
+  async deleteFaq(id: string): Promise<void> { }
 }
 
-export const storage = new DatabaseStorage();
+import { DatabaseStorage } from "./dbStorage";
+
+export const storage: IStorage = new DatabaseStorage();

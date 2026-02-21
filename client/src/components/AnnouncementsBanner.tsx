@@ -35,7 +35,7 @@ export function AnnouncementsBanner() {
         setLoading(false);
       }
     };
-    
+
     fetchAnnouncements();
   }, []);
 
@@ -78,15 +78,50 @@ export function AnnouncementsBanner() {
       >
         <div className="max-w-full mx-auto px-4 md:px-8 flex items-center justify-between gap-4 w-full" dir={direction}>
           <div className="flex items-center gap-3 min-w-0 flex-1">
-            <Bell className="w-4 h-4 flex-shrink-0" />
-            <p className="text-xs md:text-sm font-medium truncate [font-family:'Almarai',Helvetica]">
-              {title}
-            </p>
+            <Bell className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" />
+
+            <div className="min-w-0 flex-1 overflow-hidden">
+              {announcements.length > 1 ? (
+                <div className="relative h-6">
+                  <AnimatePresence mode="wait">
+                    <motion.p
+                      key={currentIndex}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      transition={{ duration: 0.4 }}
+                      className="text-sm md:text-base font-medium [font-family:'Almarai',Helvetica] truncate"
+                    >
+                      {title}
+                    </motion.p>
+                  </AnimatePresence>
+                </div>
+              ) : (
+                <p className="text-sm md:text-base font-medium [font-family:'Almarai',Helvetica] truncate">
+                  {title}
+                </p>
+              )}
+            </div>
           </div>
-          <button 
+
+          {announcements.length > 1 && (
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              {announcements.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => setCurrentIndex(index)}
+                  className={`h-1.5 rounded-full transition-all duration-300 ${index === currentIndex ? "w-2 bg-white" : "w-1.5 bg-white/50 hover:bg-white/70"
+                    }`}
+                  aria-label={`Show announcement ${index + 1}`}
+                />
+              ))}
+            </div>
+          )}
+
+          <button
             onClick={() => setIsDismissed(true)}
-            className="p-1 hover:bg-white/20 rounded-full transition-colors"
-            aria-label="Close"
+            className="flex-shrink-0 p-1 hover:bg-white/20 rounded-full transition-colors"
+            aria-label="Dismiss announcements"
           >
             <X className="w-4 h-4" />
           </button>

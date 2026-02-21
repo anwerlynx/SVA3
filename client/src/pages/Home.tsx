@@ -51,7 +51,7 @@ export default function Home() {
 
   const [heroSlides, setHeroSlides] = useState(defaultHeroSlides);
   const [stats, setStats] = useState(defaultStats);
-  const [newsItems, setNewsItems] = useState<Array<{id: string; slug: string; title: string; date: string; image: string; category: string}>>([]);
+  const [newsItems, setNewsItems] = useState<Array<{ id: string; slug: string; title: string; date: string; image: string; category: string }>>([]);
   const [eventItems, setEventItems] = useState<any[]>([]);
 
   useEffect(() => {
@@ -77,7 +77,7 @@ export default function Home() {
           })));
         }
       })
-      .catch(() => {});
+      .catch(() => { });
   }, [language]);
 
   useEffect(() => {
@@ -94,7 +94,7 @@ export default function Home() {
           category: n.category || '',
         })));
       })
-      .catch(() => {});
+      .catch(() => { });
   }, [language]);
 
   useEffect(() => {
@@ -104,7 +104,7 @@ export default function Home() {
         const items = Array.isArray(data) ? data : [];
         setEventItems(items.filter((e: any) => new Date(e.startDate) >= new Date()).slice(0, 4));
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   const supervisorsData = language === 'ar' ? [
@@ -154,10 +154,8 @@ export default function Home() {
           ? "معاهد الوادي العليا - بوابة التعليم العالي المتميز"
           : "Valley Higher Institutes - Gateway to Distinguished Higher Education"}
       />
-      <div className="sticky top-0 z-50">
-        <AnnouncementsBanner />
-        <Navbar />
-      </div>
+      <Navbar />
+      <AnnouncementsBanner />
 
       {/* Hero Section */}
       <section className="relative w-full h-[100vh] min-h-[600px] flex items-center justify-center overflow-hidden">
